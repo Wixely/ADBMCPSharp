@@ -11,6 +11,7 @@
     "ExecutablePath": "adb",
     "CommandTimeoutSeconds": 10,
     "VerificationDelayMilliseconds": 350,
+    "AppLaunchVerificationAttempts": 6,
     "MaxDiscoveryResults": 25,
     "DiscoveryHandleLifetimeSeconds": 60,
     "MaxInstalledAppResults": 200,

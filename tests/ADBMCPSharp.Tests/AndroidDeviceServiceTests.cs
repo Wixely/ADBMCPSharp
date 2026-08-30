@@ -82,13 +82,16 @@ public sealed class AndroidDeviceServiceTests
         {
             AdbRequestKind.LaunchPackage => Ok(),
             AdbRequestKind.GetForegroundWindow => Ok("mCurrentFocus=Window{x u0 org.example.player/.Main}"),
+            AdbRequestKind.GetDreamState => Ok("mCurrentDream=null"),
+            AdbRequestKind.StopDreaming => Ok(),
             _ => throw new InvalidOperationException(),
         });
         var policy = new PolicyOptions { AppLaunchEnabled = true };
         var result = await CreateService(fake, policy).LaunchAppAsync("living-room", "player", CancellationToken.None);
 
         Assert.Equal(OperationState.ObservedComplete, result.State);
-        Assert.Equal("org.example.player", fake.Requests[0].Value);
+        var launch = Assert.Single(fake.Requests, request => request.Kind == AdbRequestKind.LaunchPackage);
+        Assert.Equal("org.example.player", launch.Value);
     }
 
     [Fact]
@@ -101,6 +104,8 @@ public sealed class AndroidDeviceServiceTests
             AdbRequestKind.GetForegroundWindow => ++foregroundChecks == 1
                 ? Ok("mCurrentFocus=Window{x u0 org.example.launcher/.Home}")
                 : Ok("mCurrentFocus=Window{x u0 org.example.player/.Main}"),
+            AdbRequestKind.GetDreamState => Ok("mCurrentDream=null"),
+            AdbRequestKind.StopDreaming => Ok(),
             _ => throw new InvalidOperationException(),
         });
         var policy = new PolicyOptions { AppLaunchEnabled = true };
@@ -113,6 +118,31 @@ public sealed class AndroidDeviceServiceTests
         Assert.Equal(2, launches.Length);
         Assert.False(launches[0].Flag);
         Assert.True(launches[1].Flag);
+    }
+
+    [Fact]
+    public async Task WakeAndForegroundRequiresPowerGateAndDismissesDreamBeforeLaunch()
+    {
+        var fake = new FakeTransport(request => request.Kind switch
+        {
+            AdbRequestKind.Wake or AdbRequestKind.StopDreaming or AdbRequestKind.LaunchPackage => Ok(),
+            AdbRequestKind.GetForegroundWindow => Ok("mCurrentFocus=Window{x u0 org.example.player/.Main}"),
+            AdbRequestKind.GetDreamState => Ok("mCurrentDream=null"),
+            _ => throw new InvalidOperationException(),
+        });
+        var deniedPolicy = new PolicyOptions { AppLaunchEnabled = true };
+        var enabledPolicy = new PolicyOptions { AppLaunchEnabled = true, PowerControlEnabled = true };
+
+        var denied = await CreateService(fake, deniedPolicy).LaunchAppAsync(
+            "living-room", "player", AppLaunchMode.WakeAndForeground, CancellationToken.None);
+        var result = await CreateService(fake, enabledPolicy).LaunchAppAsync(
+            "living-room", "player", AppLaunchMode.WakeAndForeground, CancellationToken.None);
+
+        Assert.Equal(OperationState.Denied, denied.State);
+        Assert.Equal(OperationState.ObservedComplete, result.State);
+        Assert.Equal(
+            [AdbRequestKind.Wake, AdbRequestKind.StopDreaming, AdbRequestKind.LaunchPackage],
+            fake.Requests.Take(3).Select(request => request.Kind));
     }
 
     [Fact]
@@ -183,6 +213,7 @@ public sealed class AndroidDeviceServiceTests
         var adb = new AdbOptions
         {
             VerificationDelayMilliseconds = 0,
+            AppLaunchVerificationAttempts = 1,
             MaxInstalledAppResults = maxInstalledAppResults,
             Devices = new()
             {

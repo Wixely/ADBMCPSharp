@@ -59,7 +59,9 @@ Controls are disabled by default and independently gated:
 
 Outcomes distinguish observed completion, acceptance without observation, failure, timeout, offline, unauthorized, indeterminate, denied, and unknown aliases.
 
-Application launch first uses Android's standard launcher category. If the allowlisted package does not become foreground, the service makes one bounded retry with Android TV's Leanback launcher category; callers cannot supply a category, activity, component, or intent.
+Application launch accepts a closed `Start`, `Foreground`, or `WakeAndForeground` mode. `Start` does not request or verify foreground state. Foreground modes explicitly dismiss Android's dream/screensaver overlay and verify both the focused package and inactive dream state; `WakeAndForeground` also requires the independent power-control gate. Launch first uses Android's standard launcher category and makes one bounded Android TV Leanback retry when foreground is not observed. Callers cannot supply a category, activity, component, or intent.
+
+Launch verification polling is bounded by `Adb:AppLaunchVerificationAttempts` and `Adb:VerificationDelayMilliseconds`.
 
 ## Requirements
 
@@ -80,6 +82,7 @@ Keep checked-in [`ADBMCPSharp.json`](src/ADBMCPSharp/ADBMCPSharp.json) unchanged
     "MaxDiscoveryResults": 25,
     "DiscoveryHandleLifetimeSeconds": 60,
     "MaxInstalledAppResults": 200,
+    "AppLaunchVerificationAttempts": 6,
     "ArbitraryCommandTimeoutSeconds": 30,
     "ConnectionOperationTimeoutSeconds": 15,
     "ConnectionVerificationAttempts": 4,

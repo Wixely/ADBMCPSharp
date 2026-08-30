@@ -134,6 +134,7 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
             case AdbRequestKind.GetApiLevel: Add(args, "shell", "getprop", "ro.build.version.sdk"); break;
             case AdbRequestKind.GetPowerState: Add(args, "shell", "dumpsys", "power"); break;
             case AdbRequestKind.GetForegroundWindow: Add(args, "shell", "dumpsys", "window"); break;
+            case AdbRequestKind.GetDreamState: Add(args, "shell", "dumpsys", "dreams"); break;
             case AdbRequestKind.GetPackagePath: Add(args, "shell", "pm", "path", RequiredValue(request)); break;
             case AdbRequestKind.GetProcessId: Add(args, "shell", "pidof", RequiredValue(request)); break;
             case AdbRequestKind.ListInstalledPackages:
@@ -170,6 +171,7 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
                 break;
             case AdbRequestKind.Wake: Add(args, "shell", "input", "keyevent", "KEYCODE_WAKEUP"); break;
             case AdbRequestKind.Sleep: Add(args, "shell", "input", "keyevent", "KEYCODE_SLEEP"); break;
+            case AdbRequestKind.StopDreaming: Add(args, "shell", "cmd", "dreams", "stop-dreaming"); break;
             case AdbRequestKind.Navigation: Add(args, "shell", "input", "keyevent", ToNavigationKeyCode(RequiredValue(request))); break;
             case AdbRequestKind.LaunchPackage:
                 Add(args, "shell", "monkey", "-p", RequiredValue(request), "-c",

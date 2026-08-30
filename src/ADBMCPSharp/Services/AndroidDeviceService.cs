@@ -96,9 +96,12 @@ public sealed class AndroidDeviceService(
 
             var process = await ExecuteAsync(device, new(AdbRequestKind.GetProcessId, app.Package), token);
             var foreground = await ExecuteAsync(device, new(AdbRequestKind.GetForegroundWindow), token);
+            var dreams = await ExecuteAsync(device, new(AdbRequestKind.GetDreamState), token);
             var foregroundPackage = foreground.Success ? AndroidOutputParser.ParseForegroundPackage(foreground.Output) : null;
             return new AppStatus(device.Alias, appAlias, OperationState.ObservedComplete, true, process.Success && process.Output.Length > 0,
-                string.Equals(foregroundPackage, app.Package, StringComparison.Ordinal), null);
+                string.Equals(foregroundPackage, app.Package, StringComparison.Ordinal) &&
+                    (!dreams.Success || AndroidOutputParser.ParseDreaming(dreams.Output) != true),
+                dreams.Success ? null : "Screensaver state was unavailable.");
         }, cancellationToken);
     }
 
@@ -152,10 +155,14 @@ public sealed class AndroidDeviceService(
     }
 
     public Task<OperationResult> LaunchAppAsync(string deviceAlias, string appAlias, CancellationToken cancellationToken) =>
-        ChangeAppAsync(deviceAlias, appAlias, stop: false, cancellationToken);
+        LaunchAppAsync(deviceAlias, appAlias, AppLaunchMode.Foreground, cancellationToken);
+
+    public Task<OperationResult> LaunchAppAsync(
+        string deviceAlias, string appAlias, AppLaunchMode mode, CancellationToken cancellationToken) =>
+        ChangeAppAsync(deviceAlias, appAlias, stop: false, mode, cancellationToken);
 
     public Task<OperationResult> StopAppAsync(string deviceAlias, string appAlias, CancellationToken cancellationToken) =>
-        ChangeAppAsync(deviceAlias, appAlias, stop: true, cancellationToken);
+        ChangeAppAsync(deviceAlias, appAlias, stop: true, AppLaunchMode.Start, cancellationToken);
 
     public async Task<MediaStatusResult> GetMediaStatusAsync(string deviceAlias, CancellationToken cancellationToken)
     {
@@ -245,7 +252,8 @@ public sealed class AndroidDeviceService(
         }, cancellationToken);
     }
 
-    private async Task<OperationResult> ChangeAppAsync(string deviceAlias, string appAlias, bool stop, CancellationToken cancellationToken)
+    private async Task<OperationResult> ChangeAppAsync(
+        string deviceAlias, string appAlias, bool stop, AppLaunchMode launchMode, CancellationToken cancellationToken)
     {
         if (!TryGetApp(deviceAlias, appAlias, out var device, out var app, out var failure)) return failure;
         if (stop ? !policy.AppStop(device) : !policy.AppLaunch(device))
@@ -265,10 +273,27 @@ public sealed class AndroidDeviceService(
                     : new(device.Alias, OperationState.Accepted, "ADB accepted the request; the postcondition was not yet observed.", false);
             }
 
+            if (launchMode == AppLaunchMode.WakeAndForeground)
+            {
+                if (!policy.Power(device)) return Denied(device.Alias, "Wake-and-foreground launch requires power control.");
+                var wakeResult = await ExecuteAsync(device, new(AdbRequestKind.Wake), token);
+                Audit(device.Alias, "launch_app_wake", wakeResult.Success);
+                if (!wakeResult.Success) return ToOperation(device.Alias, wakeResult, "");
+            }
+            if (launchMode != AppLaunchMode.Start)
+            {
+                var stopDreaming = await ExecuteAsync(device, new(AdbRequestKind.StopDreaming), token);
+                Audit(device.Alias, "launch_app_stop_dreaming", stopDreaming.Success);
+                if (!stopDreaming.Success && IsConnectionFailure(stopDreaming))
+                    return ToOperation(device.Alias, stopDreaming, "");
+            }
+
             var standardLaunch = await ExecuteAsync(device, new(AdbRequestKind.LaunchPackage, app.Package), token);
             Audit(device.Alias, "launch_app", standardLaunch.Success);
             if (!standardLaunch.Success && IsConnectionFailure(standardLaunch))
                 return ToOperation(device.Alias, standardLaunch, "");
+            if (launchMode == AppLaunchMode.Start && standardLaunch.Success)
+                return new(device.Alias, OperationState.Accepted, "ADB accepted the application start; foreground was not requested.");
             if (standardLaunch.Success && await IsForegroundAsync(device, app.Package, token))
                 return new(device.Alias, OperationState.ObservedComplete, "Application became foreground.", true);
 
@@ -286,10 +311,16 @@ public sealed class AndroidDeviceService(
 
     private async Task<bool> IsForegroundAsync(ConfiguredDevice device, string package, CancellationToken token)
     {
-        await VerificationDelayAsync(token);
-        var check = await ExecuteAsync(device, new(AdbRequestKind.GetForegroundWindow), token);
-        return check.Success && string.Equals(
-            AndroidOutputParser.ParseForegroundPackage(check.Output), package, StringComparison.Ordinal);
+        for (var attempt = 0; attempt < _options.AppLaunchVerificationAttempts; attempt++)
+        {
+            await VerificationDelayAsync(token);
+            var window = await ExecuteAsync(device, new(AdbRequestKind.GetForegroundWindow), token);
+            var dreams = await ExecuteAsync(device, new(AdbRequestKind.GetDreamState), token);
+            if (window.Success && dreams.Success && AndroidOutputParser.ParseDreaming(dreams.Output) == false &&
+                string.Equals(AndroidOutputParser.ParseForegroundPackage(window.Output), package, StringComparison.Ordinal))
+                return true;
+        }
+        return false;
     }
 
     private bool TryGetApp(string deviceAlias, string appAlias, out ConfiguredDevice device, out AllowedAppOptions app, out OperationResult failure)

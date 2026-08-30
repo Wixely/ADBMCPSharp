@@ -112,6 +112,18 @@ public sealed class AdbProcessTransportContractTests
     }
 
     [Fact]
+    public void ScreensaverOperationsUseFixedDreamServiceCommands()
+    {
+        var inspect = AdbProcessTransport.BuildDeviceArguments(
+            new(), "configured-selector", new(AdbRequestKind.GetDreamState));
+        var dismiss = AdbProcessTransport.BuildDeviceArguments(
+            new(), "configured-selector", new(AdbRequestKind.StopDreaming));
+
+        Assert.Equal(["-s", "configured-selector", "shell", "dumpsys", "dreams"], inspect);
+        Assert.Equal(["-s", "configured-selector", "shell", "cmd", "dreams", "stop-dreaming"], dismiss);
+    }
+
+    [Fact]
     public void ArbitraryArgumentsRemainAfterTheConfiguredDeviceSelector()
     {
         var arguments = AdbProcessTransport.BuildDeviceArguments(

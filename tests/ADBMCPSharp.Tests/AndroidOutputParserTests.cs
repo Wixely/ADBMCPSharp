@@ -4,6 +4,18 @@ namespace ADBMCPSharp.Tests;
 
 public sealed class AndroidOutputParserTests
 {
+    [Theory]
+    [InlineData("Dream manager state:\n  mCurrentDream=null", false)]
+    [InlineData("mCurrentDreamName=null\nDreamland:\n  mCurrentDream: null", false)]
+    [InlineData("Dream manager state:\n  mCurrentDream=DreamRecord{abc}", true)]
+    [InlineData("mCurrentDreamName=com.example/.Dream", true)]
+    [InlineData("mDreaming=true", true)]
+    [InlineData("isDreaming=false", false)]
+    public void DreamStateIsParsedWithoutReturningRawOutput(string output, bool expected)
+    {
+        Assert.Equal(expected, AndroidOutputParser.ParseDreaming(output));
+    }
+
     [Fact]
     public void ParsePower_RecognizesAwakeDisplay()
     {

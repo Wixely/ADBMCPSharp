@@ -27,6 +27,15 @@ public static partial class AndroidOutputParser
         return match.Success ? match.Groups["package"].Value : null;
     }
 
+    public static bool? ParseDreaming(string output)
+    {
+        if (ContainsAny(output, "isDreaming=true", "mDreaming=true")) return true;
+        if (Regex.IsMatch(output, @"mCurrentDream(?:Name)?\s*[:=]\s*(?!null(?:\s|$))\S+", RegexOptions.IgnoreCase)) return true;
+        if (ContainsAny(output, "isDreaming=false", "mDreaming=false", "mCurrentDream=null",
+            "mCurrentDream: null", "mCurrentDreamName=null")) return false;
+        return null;
+    }
+
     private static bool ContainsAny(string value, params string[] candidates) =>
         candidates.Any(candidate => value.Contains(candidate, StringComparison.OrdinalIgnoreCase));
 }

@@ -9,6 +9,7 @@ public sealed class AdbOptions
     [Required] public string ExecutablePath { get; set; } = "adb";
     [Range(1, 120)] public int CommandTimeoutSeconds { get; set; } = 10;
     [Range(0, 5000)] public int VerificationDelayMilliseconds { get; set; } = 350;
+    [Range(1, 10)] public int AppLaunchVerificationAttempts { get; set; } = 6;
     [Range(1, 100)] public int MaxDiscoveryResults { get; set; } = 25;
     [Range(10, 300)] public int DiscoveryHandleLifetimeSeconds { get; set; } = 60;
     [Range(1, 1000)] public int MaxInstalledAppResults { get; set; } = 200;

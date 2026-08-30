@@ -213,13 +213,14 @@ public static class AdbTools
         JsonSerializer.Serialize(await service.NavigateAsync(deviceAlias, action, cancellationToken), JsonOptions);
 
     [McpServerTool(Name = "adb_launch_app"),
-     Description("Launch one operator-allowlisted application when application launch is explicitly enabled, then verify foreground state.")]
+     Description("Start or foreground one operator-allowlisted application using a closed launch mode. Foreground modes dismiss Android's dream/screensaver overlay; wake additionally requires the power-control gate.")]
     public static async Task<string> LaunchApp(
         AndroidDeviceService service,
         [Description("Operator-defined device alias")] string deviceAlias,
         [Description("Operator-defined allowlisted application alias")] string appAlias,
-        CancellationToken cancellationToken) =>
-        JsonSerializer.Serialize(await service.LaunchAppAsync(deviceAlias, appAlias, cancellationToken), JsonOptions);
+        CancellationToken cancellationToken,
+        [Description("Launch behavior: Start, Foreground, or WakeAndForeground")] AppLaunchMode mode = AppLaunchMode.Foreground) =>
+        JsonSerializer.Serialize(await service.LaunchAppAsync(deviceAlias, appAlias, mode, cancellationToken), JsonOptions);
 
     [McpServerTool(Name = "adb_stop_app"),
      Description("Force-stop one operator-allowlisted application when the separate stop gate is explicitly enabled, then verify process state.")]

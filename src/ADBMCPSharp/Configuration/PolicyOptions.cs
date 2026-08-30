@@ -26,6 +26,7 @@ public sealed class PolicyOptions
 }
 
 public enum InstalledAppScope { All, User, System }
+public enum AppLaunchMode { Start, Foreground, WakeAndForeground }
 public enum DiagnosticKind { Battery, Memory, Storage, CpuLoad, Runtime, Display, Security }
 public enum MediaAction { Play, Pause, PlayPause, Stop, Next, Previous, FastForward, Rewind }
 public enum VolumeAction { Up, Down, Mute }
