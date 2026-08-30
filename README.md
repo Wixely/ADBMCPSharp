@@ -198,6 +198,14 @@ Create a self-contained single-file build (normal .NET runtime, not NativeAOT):
 .\scripts\build.ps1 -Action Publish -Runtime linux-x64
 ```
 
+Create versioned release archives and a SHA-256 manifest with:
+
+```powershell
+.\scripts\package-release.ps1
+```
+
+The default creates `win-x64` and `linux-x64` packages beneath `artifacts/release`. Linux packaging on Windows uses WSL so the executable and service files have deterministic Unix ownership and modes. See [`RELEASING.md`](RELEASING.md) for the candidate checklist and outstanding first-release gates, and [`CHANGELOG.md`](CHANGELOG.md) for release notes.
+
 Windows builds support interactive execution and Windows Service hosting. Install a published executable with your normal service-management tooling, set its working/configuration directory permissions, and supply secrets in a protected service environment rather than command-line arguments.
 
 Linux builds run interactively or with the example [`adbmcp.service`](deploy/systemd/adbmcp.service). The unit assumes `/opt/adbmcp`, a dedicated `adbmcp` account, and `/etc/adbmcp/environment`; adjust ownership and paths for the target host.
@@ -228,4 +236,4 @@ NativeAOT is intentionally disabled because MCP assembly tool discovery uses ref
 - Arbitrary ADB is triple-gated globally, per device, and per call; it is pinned to the configured device selector and omits arguments/output from audit logs, but it intentionally forfeits semantic command safety.
 - Non-loopback MCP requires an API key; use network-layer TLS because this service does not terminate TLS itself.
 
-See [`PLAN.md`](PLAN.md) for verification gaps and follow-up milestones, and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) for dependency provenance.
+See [`PLAN.md`](PLAN.md) for verification gaps and follow-up milestones, [`RELEASING.md`](RELEASING.md) for the release checklist, and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) for dependency provenance.

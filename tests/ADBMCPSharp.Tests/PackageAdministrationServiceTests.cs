@@ -26,7 +26,7 @@ public sealed class PackageAdministrationServiceTests
     {
         var apk = Path.Combine(Path.GetTempPath(), $"adbmcp-test-{Guid.NewGuid():N}.apk");
         var content = "test apk bytes"u8.ToArray();
-        await File.WriteAllBytesAsync(apk, content);
+        await File.WriteAllBytesAsync(apk, content, TestContext.Current.CancellationToken);
         try
         {
             var (service, transport) = CreateService(apk, Convert.ToHexString(SHA256.HashData(content)));
