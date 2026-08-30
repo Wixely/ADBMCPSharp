@@ -59,6 +59,8 @@ Controls are disabled by default and independently gated:
 
 Outcomes distinguish observed completion, acceptance without observation, failure, timeout, offline, unauthorized, indeterminate, denied, and unknown aliases.
 
+Application launch first uses Android's standard launcher category. If the allowlisted package does not become foreground, the service makes one bounded retry with Android TV's Leanback launcher category; callers cannot supply a category, activity, component, or intent.
+
 ## Requirements
 
 - .NET SDK 10.0.300 or later 10.0 feature band for building

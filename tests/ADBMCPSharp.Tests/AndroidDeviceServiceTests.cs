@@ -92,6 +92,30 @@ public sealed class AndroidDeviceServiceTests
     }
 
     [Fact]
+    public async Task LaunchFallsBackToLeanbackCategoryWhenStandardLaunchIsNotForeground()
+    {
+        var foregroundChecks = 0;
+        var fake = new FakeTransport(request => request.Kind switch
+        {
+            AdbRequestKind.LaunchPackage => Ok(),
+            AdbRequestKind.GetForegroundWindow => ++foregroundChecks == 1
+                ? Ok("mCurrentFocus=Window{x u0 org.example.launcher/.Home}")
+                : Ok("mCurrentFocus=Window{x u0 org.example.player/.Main}"),
+            _ => throw new InvalidOperationException(),
+        });
+        var policy = new PolicyOptions { AppLaunchEnabled = true };
+
+        var result = await CreateService(fake, policy).LaunchAppAsync("living-room", "player", CancellationToken.None);
+
+        Assert.Equal(OperationState.ObservedComplete, result.State);
+        Assert.True(result.Verified);
+        var launches = fake.Requests.Where(request => request.Kind == AdbRequestKind.LaunchPackage).ToArray();
+        Assert.Equal(2, launches.Length);
+        Assert.False(launches[0].Flag);
+        Assert.True(launches[1].Flag);
+    }
+
+    [Fact]
     public async Task InstalledAppListingIsDeniedByDefault()
     {
         var fake = new FakeTransport(_ => throw new InvalidOperationException("Transport should not be called."));

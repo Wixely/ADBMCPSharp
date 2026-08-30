@@ -99,6 +99,19 @@ public sealed class AdbProcessTransportContractTests
     }
 
     [Fact]
+    public void ApplicationLaunchSupportsOnlyStandardAndTvLauncherCategories()
+    {
+        var standard = AdbProcessTransport.BuildDeviceArguments(
+            new(), "configured-selector", new(AdbRequestKind.LaunchPackage, "org.example.player"));
+        var leanback = AdbProcessTransport.BuildDeviceArguments(
+            new(), "configured-selector", new(AdbRequestKind.LaunchPackage, "org.example.player", Flag: true));
+
+        Assert.Contains("android.intent.category.LAUNCHER", standard);
+        Assert.Contains("android.intent.category.LEANBACK_LAUNCHER", leanback);
+        Assert.DoesNotContain("android.intent.category.LEANBACK_LAUNCHER", standard);
+    }
+
+    [Fact]
     public void ArbitraryArgumentsRemainAfterTheConfiguredDeviceSelector()
     {
         var arguments = AdbProcessTransport.BuildDeviceArguments(

@@ -253,20 +253,43 @@ public sealed class AndroidDeviceService(
 
         return await WithDeviceLockAsync(device, async token =>
         {
-            var request = new AdbRequest(stop ? AdbRequestKind.StopPackage : AdbRequestKind.LaunchPackage, app.Package);
-            var result = await ExecuteAsync(device, request, token);
-            Audit(device.Alias, stop ? "stop_app" : "launch_app", result.Success);
-            if (!result.Success) return ToOperation(device.Alias, result, "");
-            await VerificationDelayAsync(token);
-            var check = await ExecuteAsync(device,
-                new(stop ? AdbRequestKind.GetProcessId : AdbRequestKind.GetForegroundWindow, stop ? app.Package : null), token);
-            var observed = stop
-                ? !check.Success && !IsConnectionFailure(check)
-                : check.Success && string.Equals(AndroidOutputParser.ParseForegroundPackage(check.Output), app.Package, StringComparison.Ordinal);
-            return observed
-                ? new(device.Alias, OperationState.ObservedComplete, stop ? "Application stop was observed." : "Application became foreground.", true)
+            if (stop)
+            {
+                var stopResult = await ExecuteAsync(device, new(AdbRequestKind.StopPackage, app.Package), token);
+                Audit(device.Alias, "stop_app", stopResult.Success);
+                if (!stopResult.Success) return ToOperation(device.Alias, stopResult, "");
+                await VerificationDelayAsync(token);
+                var processCheck = await ExecuteAsync(device, new(AdbRequestKind.GetProcessId, app.Package), token);
+                return !processCheck.Success && !IsConnectionFailure(processCheck)
+                    ? new(device.Alias, OperationState.ObservedComplete, "Application stop was observed.", true)
+                    : new(device.Alias, OperationState.Accepted, "ADB accepted the request; the postcondition was not yet observed.", false);
+            }
+
+            var standardLaunch = await ExecuteAsync(device, new(AdbRequestKind.LaunchPackage, app.Package), token);
+            Audit(device.Alias, "launch_app", standardLaunch.Success);
+            if (!standardLaunch.Success && IsConnectionFailure(standardLaunch))
+                return ToOperation(device.Alias, standardLaunch, "");
+            if (standardLaunch.Success && await IsForegroundAsync(device, app.Package, token))
+                return new(device.Alias, OperationState.ObservedComplete, "Application became foreground.", true);
+
+            var leanbackLaunch = await ExecuteAsync(device, new(AdbRequestKind.LaunchPackage, app.Package, Flag: true), token);
+            Audit(device.Alias, "launch_app_leanback_fallback", leanbackLaunch.Success);
+            if (!leanbackLaunch.Success)
+                return standardLaunch.Success
+                    ? new(device.Alias, OperationState.Accepted, "ADB accepted the standard launch; the TV fallback was not accepted.", false)
+                    : ToOperation(device.Alias, leanbackLaunch, "");
+            return await IsForegroundAsync(device, app.Package, token)
+                ? new(device.Alias, OperationState.ObservedComplete, "Application became foreground through the TV launcher fallback.", true)
                 : new(device.Alias, OperationState.Accepted, "ADB accepted the request; the postcondition was not yet observed.", false);
         }, cancellationToken);
+    }
+
+    private async Task<bool> IsForegroundAsync(ConfiguredDevice device, string package, CancellationToken token)
+    {
+        await VerificationDelayAsync(token);
+        var check = await ExecuteAsync(device, new(AdbRequestKind.GetForegroundWindow), token);
+        return check.Success && string.Equals(
+            AndroidOutputParser.ParseForegroundPackage(check.Output), package, StringComparison.Ordinal);
     }
 
     private bool TryGetApp(string deviceAlias, string appAlias, out ConfiguredDevice device, out AllowedAppOptions app, out OperationResult failure)

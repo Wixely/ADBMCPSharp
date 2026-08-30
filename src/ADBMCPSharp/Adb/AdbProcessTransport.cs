@@ -172,7 +172,8 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
             case AdbRequestKind.Sleep: Add(args, "shell", "input", "keyevent", "KEYCODE_SLEEP"); break;
             case AdbRequestKind.Navigation: Add(args, "shell", "input", "keyevent", ToNavigationKeyCode(RequiredValue(request))); break;
             case AdbRequestKind.LaunchPackage:
-                Add(args, "shell", "monkey", "-p", RequiredValue(request), "-c", "android.intent.category.LAUNCHER", "1");
+                Add(args, "shell", "monkey", "-p", RequiredValue(request), "-c",
+                    request.Flag ? "android.intent.category.LEANBACK_LAUNCHER" : "android.intent.category.LAUNCHER", "1");
                 break;
             case AdbRequestKind.StopPackage: Add(args, "shell", "am", "force-stop", RequiredValue(request)); break;
             default: throw new ArgumentOutOfRangeException(nameof(request));
