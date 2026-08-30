@@ -40,6 +40,41 @@ public static class AdbTools
         CancellationToken cancellationToken) =>
         JsonSerializer.Serialize(await service.GetStatusAsync(deviceAlias, cancellationToken), JsonOptions);
 
+    [McpServerTool(Name = "adb_get_connection_health"),
+     Description("Inspect redacted ADB connection health for a configured device alias without exposing its selector or network endpoint.")]
+    public static async Task<string> GetConnectionHealth(
+        AdbConnectionService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.GetHealthAsync(deviceAlias, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_connect_device"),
+     Description("Connect one configured device through its configured ADB server. Independently gated and requires explicit confirmation; no endpoint is accepted from MCP.")]
+    public static async Task<string> ConnectDevice(
+        AdbConnectionService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Must be true to confirm the connection change")] bool confirmChange,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.ConnectAsync(deviceAlias, confirmChange, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_reconnect_device"),
+     Description("Disconnect and reconnect one configured device using only its server-side profile. Independently gated and requires explicit confirmation.")]
+    public static async Task<string> ReconnectDevice(
+        AdbConnectionService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Must be true to confirm the connection change")] bool confirmChange,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.ReconnectAsync(deviceAlias, confirmChange, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_disconnect_device"),
+     Description("Disconnect one configured device from its configured ADB server. Independently gated and requires explicit confirmation; no endpoint is accepted from MCP.")]
+    public static async Task<string> DisconnectDevice(
+        AdbConnectionService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Must be true to confirm the connection change")] bool confirmChange,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.DisconnectAsync(deviceAlias, confirmChange, cancellationToken), JsonOptions);
+
     [McpServerTool(Name = "adb_list_allowed_apps"),
      Description("List operator-configured application aliases and effective launch/stop gates for one device.")]
     public static string ListAllowedApps(

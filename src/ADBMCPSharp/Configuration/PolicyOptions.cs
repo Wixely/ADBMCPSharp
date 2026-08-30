@@ -14,6 +14,7 @@ public sealed class PolicyOptions
     public bool PackageInstallEnabled { get; set; }
     public bool PackageUninstallEnabled { get; set; }
     public bool ArbitraryCommandsEnabled { get; set; }
+    public bool ConnectionManagementEnabled { get; set; }
     public bool PowerControlEnabled { get; set; }
     public bool NavigationControlEnabled { get; set; }
     public bool AppLaunchEnabled { get; set; }

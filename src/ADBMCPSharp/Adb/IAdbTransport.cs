@@ -6,9 +6,13 @@ public interface IAdbTransport
 {
     Task<AdbExecutionResult> ExecuteServerAsync(AdbServerOptions server, AdbServerRequest request, CancellationToken cancellationToken);
     Task<AdbExecutionResult> ExecuteAsync(AdbServerOptions server, string deviceSelector, AdbRequest request, CancellationToken cancellationToken);
+    Task<AdbExecutionResult> ExecuteConnectionAsync(
+        AdbServerOptions server, string deviceSelector, AdbConnectionRequest request, CancellationToken cancellationToken) =>
+        Task.FromException<AdbExecutionResult>(new NotSupportedException("Connection management is not supported by this transport."));
 }
 
 public enum AdbServerRequest { CheckMdns, ListMdnsServices }
+public enum AdbConnectionRequest { Connect, Disconnect }
 
 public enum AdbRequestKind
 {

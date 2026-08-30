@@ -62,6 +62,7 @@ try
     builder.Services.AddSingleton<AdbDiscoveryService>();
     builder.Services.AddSingleton<PackageAdministrationService>();
     builder.Services.AddSingleton<ArbitraryAdbService>();
+    builder.Services.AddSingleton<AdbConnectionService>();
     builder.Services.AddHttpClient("apk-artifacts").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {
         AllowAutoRedirect = false,

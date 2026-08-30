@@ -45,7 +45,8 @@ try {
         -Headers $sessionHeaders -ContentType 'application/json' -Body $toolsBody -TimeoutSec 10
     $expectedTools = @(
         'adb_list_devices', 'adb_list_adb_servers', 'adb_discover_devices',
-        'adb_get_device_status', 'adb_list_allowed_apps', 'adb_get_app_status', 'adb_list_installed_apps',
+        'adb_get_device_status', 'adb_get_connection_health', 'adb_connect_device', 'adb_reconnect_device',
+        'adb_disconnect_device', 'adb_list_allowed_apps', 'adb_get_app_status', 'adb_list_installed_apps',
         'adb_list_diagnostics', 'adb_run_diagnostic',
         'adb_get_media_status', 'adb_send_media_action', 'adb_send_volume_action',
         'adb_list_installable_apks', 'adb_install_apk', 'adb_uninstall_app', 'adb_execute_arbitrary_command',

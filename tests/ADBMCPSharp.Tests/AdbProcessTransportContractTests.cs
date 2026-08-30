@@ -34,6 +34,22 @@ public sealed class AdbProcessTransportContractTests
         Assert.DoesNotContain("-s", arguments);
     }
 
+    [Fact]
+    public void ConnectionLifecycleUsesConfiguredSelectorWithoutDeviceScopeFlag()
+    {
+        var connect = AdbProcessTransport.BuildConnectionArguments(
+            new(), "configured-selector", AdbConnectionRequest.Connect);
+        var disconnect = AdbProcessTransport.BuildConnectionArguments(
+            new() { Mode = AdbServerMode.Remote, Host = "example.invalid", Port = 5040 },
+            "configured-selector",
+            AdbConnectionRequest.Disconnect);
+
+        Assert.Equal(["connect", "configured-selector"], connect);
+        Assert.Equal(["-H", "example.invalid", "-P", "5040", "disconnect", "configured-selector"], disconnect);
+        Assert.DoesNotContain("-s", connect);
+        Assert.DoesNotContain("-s", disconnect);
+    }
+
     [Theory]
     [InlineData(InstalledAppScope.All, null)]
     [InlineData(InstalledAppScope.User, "-3")]

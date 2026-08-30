@@ -20,6 +20,7 @@ public sealed class CapabilityPolicy(IOptions<PolicyOptions> options)
     public bool PackageInstall(ConfiguredDevice device) => Inspection(device) && _policy.PackageInstallEnabled && device.Device.Capabilities.AllowPackageInstall;
     public bool PackageUninstall(ConfiguredDevice device) => Inspection(device) && _policy.PackageUninstallEnabled && device.Device.Capabilities.AllowPackageUninstall;
     public bool ArbitraryCommands(ConfiguredDevice device) => Inspection(device) && _policy.ArbitraryCommandsEnabled && device.Device.Capabilities.AllowArbitraryCommands;
+    public bool ConnectionManagement(ConfiguredDevice device) => Inspection(device) && _policy.ConnectionManagementEnabled && device.Device.Capabilities.AllowConnectionManagement;
     public bool Power(ConfiguredDevice device) => Inspection(device) && _policy.PowerControlEnabled && device.Device.Capabilities.AllowPower;
     public bool Navigation(ConfiguredDevice device, NavigationAction action) => Inspection(device) && _policy.NavigationControlEnabled && device.Device.Capabilities.AllowNavigation && _policy.AllowedNavigationActions.Contains(action);
     public bool AppLaunch(ConfiguredDevice device) => Inspection(device) && _policy.AppLaunchEnabled && device.Device.Capabilities.AllowAppLaunch;
@@ -31,7 +32,7 @@ public sealed class CapabilityPolicy(IOptions<PolicyOptions> options)
         InstalledApps(device), MediaInspection(device), MediaMetadata(device),
         Inspection(device) && _policy.MediaControlEnabled && device.Device.Capabilities.AllowMediaControl,
         Inspection(device) && _policy.VolumeControlEnabled && device.Device.Capabilities.AllowVolumeControl,
-        PackageInstall(device), PackageUninstall(device), ArbitraryCommands(device), Power(device),
+        PackageInstall(device), PackageUninstall(device), ArbitraryCommands(device), ConnectionManagement(device), Power(device),
         Inspection(device) && _policy.NavigationControlEnabled && device.Device.Capabilities.AllowNavigation,
         AppLaunch(device), AppStop(device),
         Inspection(device) && _policy.DiagnosticsEnabled && device.Device.Capabilities.AllowDiagnostics

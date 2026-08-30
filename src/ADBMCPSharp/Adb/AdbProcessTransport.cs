@@ -25,6 +25,14 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
             request.TimeoutSeconds ?? _options.CommandTimeoutSeconds,
             cancellationToken);
 
+    public Task<AdbExecutionResult> ExecuteConnectionAsync(
+        AdbServerOptions server, string deviceSelector, AdbConnectionRequest request, CancellationToken cancellationToken) =>
+        ExecuteCoreAsync(
+            request.ToString(),
+            BuildConnectionArguments(server, deviceSelector, request),
+            _options.ConnectionOperationTimeoutSeconds,
+            cancellationToken);
+
     private async Task<AdbExecutionResult> ExecuteCoreAsync(
         string operation, IReadOnlyList<string> arguments, int timeoutSeconds, CancellationToken cancellationToken)
     {
@@ -88,6 +96,20 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
         arguments.Add("-s");
         arguments.Add(deviceSelector);
         AddFixedRequestArguments(arguments, request);
+        return arguments;
+    }
+
+    internal static IReadOnlyList<string> BuildConnectionArguments(
+        AdbServerOptions server, string deviceSelector, AdbConnectionRequest request)
+    {
+        var arguments = BuildBaseArguments(server);
+        arguments.Add(request switch
+        {
+            AdbConnectionRequest.Connect => "connect",
+            AdbConnectionRequest.Disconnect => "disconnect",
+            _ => throw new ArgumentOutOfRangeException(nameof(request)),
+        });
+        arguments.Add(deviceSelector);
         return arguments;
     }
 

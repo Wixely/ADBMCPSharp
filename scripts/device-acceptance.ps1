@@ -153,10 +153,11 @@ try {
     }
 
     $devices = Invoke-AcceptanceTool 2 'adb_list_devices' @{}
-    $status = Invoke-AcceptanceTool 3 'adb_get_device_status' @{ deviceAlias = $DeviceAlias }
-    $options = Invoke-AcceptanceTool 4 'adb_list_diagnostics' @{ deviceAlias = $DeviceAlias }
+    $connectionHealth = Invoke-AcceptanceTool 3 'adb_get_connection_health' @{ deviceAlias = $DeviceAlias }
+    $status = Invoke-AcceptanceTool 4 'adb_get_device_status' @{ deviceAlias = $DeviceAlias }
+    $options = Invoke-AcceptanceTool 5 'adb_list_diagnostics' @{ deviceAlias = $DeviceAlias }
     $diagnosticResults = @()
-    $requestId = 5
+    $requestId = 6
     foreach ($diagnostic in $diagnostics) {
         $result = Invoke-AcceptanceTool $requestId 'adb_run_diagnostic' @{
             deviceAlias = $DeviceAlias
@@ -185,6 +186,9 @@ try {
         ConfiguredDeviceCount = @($devices).Count
         DeviceState = $status.state
         ConnectionState = $status.connectionState
+        ConnectionHealthState = $connectionHealth.state
+        ConnectionReachable = $connectionHealth.reachable
+        ConnectionAuthorized = $connectionHealth.authorized
         DiagnosticsEnabledCount = @($options | Where-Object { $_.enabled }).Count
         UserAppCount = $apps.count
         AppListTruncated = $apps.truncated

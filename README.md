@@ -2,7 +2,7 @@
 
 ADBMCPSharp is a .NET 10 MCP server for controlled Android Debug Bridge access. It maps configured aliases to local or remote ADB-server devices and exposes bounded inspection and explicitly gated controls over MCP Streamable HTTP. Normal tools never expose a raw shell, arbitrary intents, arbitrary key codes, device selectors, network addresses, or filesystem paths. An optional break-glass arbitrary-command tool can deliberately bypass those semantic boundaries for specifically enabled devices.
 
-The current implementation is a runnable first vertical slice. It has fake-transport coverage but has not yet been accepted against a physical device, remote ADB server, Docker topology, or public release.
+The current implementation is runnable and has automated contract coverage. Its inspection, diagnostics, application, media, package, and reversible-control paths have also been accepted against a configured physical Android device through a local ADB server. Remote-server and Docker topology acceptance and public release remain outstanding.
 
 ## Included MCP tools
 
@@ -23,6 +23,12 @@ Passive network discovery is read-only but disabled by default:
 
 - `adb_list_adb_servers` lists configured aliases and local/remote modes without coordinates.
 - `adb_discover_devices` invokes the selected ADB server's mDNS discovery and returns bounded, redacted advertisements.
+
+Configured connection lifecycle separates read-only health from guarded changes:
+
+- `adb_get_connection_health` reports redacted online, offline, unauthorized, unavailable, or unknown state for a configured alias.
+- `adb_connect_device`, `adb_reconnect_device`, and `adb_disconnect_device` use only the server-side profile. They require the global connection-management gate, the selected device's independent gate, and per-call confirmation.
+- Lifecycle changes are serialized per device, audited without endpoints, bounded by time and retry limits, and verified when observable.
 
 Installed-application enumeration is privacy-sensitive and disabled by default:
 
@@ -59,7 +65,7 @@ Outcomes distinguish observed completion, acceptance without observation, failur
 - An operator-installed `adb` executable from a trusted Android SDK Platform-Tools distribution
 - An already-authorized ADB connection; wireless pairing remains an operator workflow
 
-ADBMCPSharp does not explicitly start or manage a daemon, pair devices, manage ADB keys, or redistribute platform-tools. The configured executable may cause the normal `adb` client to start its local server when needed, connect to a local ADB server, or use `adb -H host -P port` for a trusted remote ADB server.
+ADBMCPSharp does not explicitly start or manage a daemon, pair devices, manage ADB keys, or redistribute platform-tools. It can issue guarded connect/disconnect operations for preconfigured device selectors. The configured executable may cause the normal `adb` client to start its local server when needed, connect to a local ADB server, or use `adb -H host -P port` for a trusted remote ADB server.
 
 ## Configure
 
@@ -73,6 +79,9 @@ Keep checked-in [`ADBMCPSharp.json`](src/ADBMCPSharp/ADBMCPSharp.json) unchanged
     "DiscoveryHandleLifetimeSeconds": 60,
     "MaxInstalledAppResults": 200,
     "ArbitraryCommandTimeoutSeconds": 30,
+    "ConnectionOperationTimeoutSeconds": 15,
+    "ConnectionVerificationAttempts": 4,
+    "ConnectionRetryDelayMilliseconds": 500,
     "MaxArbitraryArgumentCount": 32,
     "MaxArbitraryArgumentLength": 1024,
     "MaxArbitraryTotalCharacters": 8192,
@@ -94,7 +103,8 @@ Keep checked-in [`ADBMCPSharp.json`](src/ADBMCPSharp/ADBMCPSharp.json) unchanged
           "AllowVolumeControl": true,
           "AllowPackageInstall": false,
           "AllowPackageUninstall": false,
-          "AllowArbitraryCommands": false
+          "AllowArbitraryCommands": false,
+          "AllowConnectionManagement": false
         },
         "AllowedApps": {
           "player": { "Package": "org.example.player", "DisplayName": "Player", "AllowUninstall": false }
@@ -124,6 +134,7 @@ Keep checked-in [`ADBMCPSharp.json`](src/ADBMCPSharp/ADBMCPSharp.json) unchanged
     "PackageInstallEnabled": false,
     "PackageUninstallEnabled": false,
     "ArbitraryCommandsEnabled": false,
+    "ConnectionManagementEnabled": false,
     "PowerControlEnabled": false,
     "NavigationControlEnabled": false,
     "AppLaunchEnabled": false,
@@ -141,6 +152,8 @@ Configuration order is JSON, environment-specific JSON, ignored local JSON, envi
 Set `Policy:DiscoveryEnabled` to `true` to allow passive discovery. The tool uses only `adb mdns check` and `adb mdns services`; it does not sweep subnets, probe port 5555, or issue pairing or connection commands. Results classify legacy TCP ADB, wireless debugging, and pairing-window advertisements while replacing service-instance names and endpoints with short-lived opaque handles. One physical device may produce multiple advertisements. With a remote ADB server alias, discovery observes that server host's LAN rather than the MCP service host's LAN.
 
 The ADB server can independently auto-connect wireless devices that it has already paired with. For a remote server, govern that behavior on the remote host through its ADB configuration, including `ADB_MDNS_AUTO_CONNECT`; ADBMCPSharp does not change remote-server policy.
+
+Connection health requires only normal inspection access. To permit explicit lifecycle changes, set `Policy:ConnectionManagementEnabled` and the selected device's `Capabilities:AllowConnectionManagement` to `true`; each call must still pass `confirmChange: true`. Connect, reconnect, and disconnect always use the configured selector and configured local or remote ADB server—MCP callers cannot provide an endpoint. `Adb:ConnectionOperationTimeoutSeconds`, `ConnectionVerificationAttempts`, and `ConnectionRetryDelayMilliseconds` bound command execution and postcondition polling. Pairing, trust prompts, keys, discovery-handle connection, and background reconnect loops remain outside this feature.
 
 Set `Policy:InstalledAppListingEnabled` to `true` to expose installed package identifiers. Inspection must also be enabled, and the selected device's `Capabilities:AllowInstalledAppListing` override must remain enabled. Results are capped by `Adb:MaxInstalledAppResults`; reaching the cap is reported as truncation. No APK paths, versions, permissions, installers, or application data are returned.
 

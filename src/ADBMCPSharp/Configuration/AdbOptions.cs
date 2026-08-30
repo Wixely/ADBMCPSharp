@@ -16,6 +16,9 @@ public sealed class AdbOptions
     [Range(5, 600)] public int ApkDownloadTimeoutSeconds { get; set; } = 120;
     [Range(10, 1800)] public int PackageOperationTimeoutSeconds { get; set; } = 300;
     [Range(1, 600)] public int ArbitraryCommandTimeoutSeconds { get; set; } = 30;
+    [Range(1, 120)] public int ConnectionOperationTimeoutSeconds { get; set; } = 15;
+    [Range(1, 10)] public int ConnectionVerificationAttempts { get; set; } = 4;
+    [Range(0, 5000)] public int ConnectionRetryDelayMilliseconds { get; set; } = 500;
     [Range(1, 64)] public int MaxArbitraryArgumentCount { get; set; } = 32;
     [Range(1, 4096)] public int MaxArbitraryArgumentLength { get; set; } = 1024;
     [Range(1, 32768)] public int MaxArbitraryTotalCharacters { get; set; } = 8192;
@@ -60,6 +63,7 @@ public sealed class DeviceCapabilityOverrides
     public bool AllowPackageInstall { get; set; }
     public bool AllowPackageUninstall { get; set; }
     public bool AllowArbitraryCommands { get; set; }
+    public bool AllowConnectionManagement { get; set; }
     public bool AllowPower { get; set; } = true;
     public bool AllowNavigation { get; set; } = true;
     public bool AllowAppLaunch { get; set; } = true;

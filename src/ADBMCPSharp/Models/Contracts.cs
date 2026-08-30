@@ -27,6 +27,7 @@ public sealed record CapabilityStatus(
     bool PackageInstall,
     bool PackageUninstall,
     bool ArbitraryCommands,
+    bool ConnectionManagement,
     bool PowerControl,
     bool NavigationControl,
     bool AppLaunch,
@@ -78,6 +79,13 @@ public sealed record ArbitraryAdbResult(
     string DeviceAlias, OperationState State, string? Output, string? Message);
 
 public sealed record OperationResult(string DeviceAlias, OperationState State, string Message, bool? Verified = null);
+
+public sealed record ConnectionHealthResult(
+    string DeviceAlias, OperationState State, string ConnectionState, bool Reachable, bool Authorized,
+    string ServerMode, string? Message);
+
+public sealed record ConnectionOperationResult(
+    string DeviceAlias, OperationState State, string ConnectionState, string Message, bool? Verified = null);
 
 public sealed record DiscoveryResult(
     string ServerAlias, OperationState State, bool MdnsAvailable, int AdvertisementCount,
