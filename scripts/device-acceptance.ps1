@@ -6,6 +6,7 @@ param(
     [string]$LocalConfig,
     [switch]$IncludeControls,
     [string]$ControlAppAlias = 'settings',
+    [switch]$IncludeConnectionLifecycle,
     [switch]$IncludePackageAdministration,
     [string]$ArtifactAlias = 'acceptance-demo'
 )
@@ -77,6 +78,12 @@ try {
                 Set-AcceptanceEnvironment ('ADBMCP_Policy__' + $actionSet.Key + '__' + $index) ([string]$actionSet.Value[$index])
             }
         }
+    }
+    if ($IncludeConnectionLifecycle) {
+        Set-AcceptanceEnvironment `
+            ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__Capabilities__AllowConnectionManagement') `
+            'true'
+        Set-AcceptanceEnvironment 'ADBMCP_Policy__ConnectionManagementEnabled' 'true'
     }
     foreach ($app in $device.AllowedApps.PSObject.Properties) {
         $prefix = 'ADBMCP_Adb__Devices__' + $DeviceAlias + '__AllowedApps__' + $app.Name + '__'
@@ -200,6 +207,69 @@ try {
         AdvertisementCount = $discovery.advertisementCount
     }
     $diagnosticResults
+    if ($IncludeConnectionLifecycle) {
+        $connectionResults = @()
+        $connect = Invoke-AcceptanceTool $requestId 'adb_connect_device' @{
+            deviceAlias = $DeviceAlias
+            confirmChange = $true
+        }
+        $requestId++
+        $connectionResults += [pscustomobject]@{
+            ConnectionOperation = 'Connect'
+            State = $connect.state
+            ConnectionState = $connect.connectionState
+            Verified = $connect.verified
+        }
+
+        $reconnect = Invoke-AcceptanceTool $requestId 'adb_reconnect_device' @{
+            deviceAlias = $DeviceAlias
+            confirmChange = $true
+        }
+        $requestId++
+        $connectionResults += [pscustomobject]@{
+            ConnectionOperation = 'Reconnect'
+            State = $reconnect.state
+            ConnectionState = $reconnect.connectionState
+            Verified = $reconnect.verified
+        }
+
+        $disconnect = Invoke-AcceptanceTool $requestId 'adb_disconnect_device' @{
+            deviceAlias = $DeviceAlias
+            confirmChange = $true
+        }
+        $requestId++
+        $connectionResults += [pscustomobject]@{
+            ConnectionOperation = 'Disconnect'
+            State = $disconnect.state
+            ConnectionState = $disconnect.connectionState
+            Verified = $disconnect.verified
+        }
+
+        $restore = Invoke-AcceptanceTool $requestId 'adb_connect_device' @{
+            deviceAlias = $DeviceAlias
+            confirmChange = $true
+        }
+        $requestId++
+        $connectionResults += [pscustomobject]@{
+            ConnectionOperation = 'RestoreConnection'
+            State = $restore.state
+            ConnectionState = $restore.connectionState
+            Verified = $restore.verified
+        }
+
+        $finalHealth = Invoke-AcceptanceTool $requestId 'adb_get_connection_health' @{ deviceAlias = $DeviceAlias }
+        $requestId++
+        if (-not $finalHealth.reachable -or -not $finalHealth.authorized -or $finalHealth.connectionState -ne 'online') {
+            throw 'Connection lifecycle acceptance did not restore an online, authorized device.'
+        }
+        $connectionResults += [pscustomobject]@{
+            ConnectionOperation = 'FinalHealth'
+            State = $finalHealth.state
+            ConnectionState = $finalHealth.connectionState
+            Verified = $true
+        }
+        $connectionResults
+    }
     if ($IncludeControls) {
         $controlResults = @()
         $wake = Invoke-AcceptanceTool $requestId 'adb_wake_device' @{ deviceAlias = $DeviceAlias }
