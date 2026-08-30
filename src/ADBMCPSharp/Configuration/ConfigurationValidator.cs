@@ -25,7 +25,7 @@ public sealed class AdbOptionsValidator : IValidateOptions<AdbOptions>
             if (!options.Servers.Keys.Any(serverAlias => string.Equals(serverAlias, device.Server, StringComparison.OrdinalIgnoreCase)))
                 failures.Add($"Device '{alias}' references an unknown server.");
             if (!IsSelector(device.Selector))
-                failures.Add($"Device '{alias}' requires a selector no longer than 200 characters.");
+                failures.Add($"Device '{alias}' requires a printable, whitespace-free selector no longer than 200 characters that does not start with '-'.");
             if (device.AllowedApps.Count > 100) failures.Add($"Device '{alias}' has more than 100 allowed apps.");
             foreach (var (appAlias, app) in device.AllowedApps)
             {

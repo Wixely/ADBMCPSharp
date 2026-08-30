@@ -27,7 +27,7 @@ The slice must be tested with a local ADB server and a remote ADB server. Networ
 
 Implemented:
 
-- .NET 10 Streamable HTTP MCP host with loopback-default binding, health endpoint, Serilog, Windows Service support, and systemd example.
+- .NET 10 Streamable HTTP MCP host with loopback-default binding, API-key enforcement for network binding, per-client rate limiting, health endpoint, Serilog, Windows Service support, and systemd example.
 - External `adb` process adapter using shell-free argument lists, bounded output, cancellation, timeouts, and classified offline/unauthorized/unavailable failures.
 - Named local/remote ADB servers, named devices, server-side selectors, strict package/alias validation, and no raw selectors or server coordinates in tool results.
 - Bounded device/app inspection plus independently gated power, navigation/media/volume, allowlisted app launch, and separately gated app stop.

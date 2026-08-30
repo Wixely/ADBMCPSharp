@@ -1,9 +1,12 @@
 [CmdletBinding()]
 param(
-    [string]$Executable = (Join-Path (Split-Path -Parent $PSScriptRoot) 'artifacts\publish\win-x64\ADBMCPSharp.exe')
+    [string]$Executable
 )
 
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($Executable)) {
+    $Executable = Join-Path (Split-Path -Parent $PSScriptRoot) 'artifacts\publish\win-x64\ADBMCPSharp.exe'
+}
 $resolvedExecutable = Resolve-Path $Executable
 $workingDirectory = Split-Path -Parent $resolvedExecutable
 $serviceProcess = Start-Process -FilePath $resolvedExecutable -WorkingDirectory $workingDirectory -PassThru -WindowStyle Hidden
@@ -24,6 +27,30 @@ try {
     Write-Output ('MCP_STATUS=' + $response.StatusCode)
     Write-Output ('MCP_CONTENT_TYPE=' + $response.Headers['Content-Type'])
     if ($response.Content -notmatch 'ADBMCPSharp') { throw 'MCP initialize response did not identify the server.' }
+
+    $sessionId = $response.Headers['Mcp-Session-Id']
+    if ([string]::IsNullOrWhiteSpace($sessionId)) { throw 'MCP initialize response did not include a session ID.' }
+    $sessionHeaders = @{
+        Accept = 'application/json, text/event-stream'
+        'Mcp-Session-Id' = $sessionId
+        'MCP-Protocol-Version' = '2025-06-18'
+    }
+    $initializedBody = '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+    $null = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+        -Headers $sessionHeaders -ContentType 'application/json' -Body $initializedBody -TimeoutSec 10
+
+    $toolsBody = '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+    $toolsResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+        -Headers $sessionHeaders -ContentType 'application/json' -Body $toolsBody -TimeoutSec 10
+    $expectedTools = @(
+        'adb_list_devices', 'adb_get_device_status', 'adb_list_allowed_apps', 'adb_get_app_status',
+        'adb_get_capabilities', 'adb_wake_device', 'adb_sleep_device', 'adb_send_navigation',
+        'adb_launch_app', 'adb_stop_app'
+    )
+    foreach ($tool in $expectedTools) {
+        if ($toolsResponse.Content -notmatch [Regex]::Escape($tool)) { throw "MCP tool catalogue is missing $tool." }
+    }
+    Write-Output ('MCP_TOOLS=' + $expectedTools.Count)
 }
 finally {
     if ($null -ne $serviceProcess -and -not $serviceProcess.HasExited) {

@@ -31,6 +31,17 @@ public sealed class ConfigurationValidatorTests
         Assert.True(result.Failed);
     }
 
+    [Theory]
+    [InlineData("-H")]
+    [InlineData("selector with spaces")]
+    [InlineData("selector\nwith-control")]
+    public void SelectorCannotBeConfusedWithAdbOptions(string selector)
+    {
+        var options = ValidOptions();
+        options.Devices["living-room"].Selector = selector;
+        Assert.True(new AdbOptionsValidator().Validate(null, options).Failed);
+    }
+
     private static AdbOptions ValidOptions() => new()
     {
         Devices = new()
