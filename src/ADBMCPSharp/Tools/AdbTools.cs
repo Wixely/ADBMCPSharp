@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ADBMCPSharp.Configuration;
 using ADBMCPSharp.Services;
 using ModelContextProtocol.Server;
@@ -9,7 +10,11 @@ namespace ADBMCPSharp.Tools;
 [McpServerToolType]
 public static class AdbTools
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
 
     [McpServerTool(Name = "adb_list_devices"),
      Description("List configured Android device aliases without exposing ADB selectors, serials, or addresses.")]

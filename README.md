@@ -165,6 +165,8 @@ The VS Code build, test, and `coreclr` launch configurations are repository-loca
 
 After publishing the Windows executable, `.\scripts\smoke-test.ps1` starts it hidden, checks `/healthz`, performs an MCP initialization request, and stops the exact process it started.
 
+For a configured ignored local device alias, `.\scripts\device-acceptance.ps1 -DeviceAlias <alias>` runs the structured read-only MCP acceptance suite without printing raw diagnostic or package data. Add `-IncludeControls -ControlAppAlias <allowlisted-alias>` only when reversible wake, Home, launch/stop, media Pause/Play, and volume Down/Up tests are authorized. Add `-IncludePackageAdministration -ArtifactAlias <disposable-alias>` only for a checksum-pinned disposable APK whose install and removal are both authorized. The harness starts and stops an exact local service process and passes sensitive local configuration only through its temporary child-process environment.
+
 ## Publish and host
 
 Create a self-contained single-file build (normal .NET runtime, not NativeAOT):

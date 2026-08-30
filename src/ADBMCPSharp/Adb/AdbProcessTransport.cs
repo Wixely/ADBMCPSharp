@@ -111,7 +111,7 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
             case AdbRequestKind.GetAndroidVersion: Add(args, "shell", "getprop", "ro.build.version.release"); break;
             case AdbRequestKind.GetApiLevel: Add(args, "shell", "getprop", "ro.build.version.sdk"); break;
             case AdbRequestKind.GetPowerState: Add(args, "shell", "dumpsys", "power"); break;
-            case AdbRequestKind.GetForegroundWindow: Add(args, "shell", "dumpsys", "window", "windows"); break;
+            case AdbRequestKind.GetForegroundWindow: Add(args, "shell", "dumpsys", "window"); break;
             case AdbRequestKind.GetPackagePath: Add(args, "shell", "pm", "path", RequiredValue(request)); break;
             case AdbRequestKind.GetProcessId: Add(args, "shell", "pidof", RequiredValue(request)); break;
             case AdbRequestKind.ListInstalledPackages:

@@ -6,6 +6,15 @@ namespace ADBMCPSharp.Tests;
 public sealed class AdbProcessTransportContractTests
 {
     [Fact]
+    public void ForegroundInspectionUsesWindowSummaryContainingFocusFields()
+    {
+        var arguments = AdbProcessTransport.BuildDeviceArguments(
+            new(), "configured-selector", new(AdbRequestKind.GetForegroundWindow));
+
+        Assert.Equal(["-s", "configured-selector", "shell", "dumpsys", "window"], arguments);
+    }
+
+    [Fact]
     public void LocalMdnsDiscoveryUsesOnlyFixedServerCommand()
     {
         var arguments = AdbProcessTransport.BuildServerArguments(new(), AdbServerRequest.ListMdnsServices);
