@@ -2,7 +2,7 @@
 
 ADBMCPSharp is a .NET 10 MCP server for controlled Android Debug Bridge access. It maps configured aliases to local or remote ADB-server devices and exposes bounded inspection and explicitly gated controls over MCP Streamable HTTP. Normal tools never expose a raw shell, arbitrary intents, arbitrary key codes, device selectors, network addresses, or filesystem paths. An optional break-glass arbitrary-command tool can deliberately bypass those semantic boundaries for specifically enabled devices.
 
-The current implementation is runnable and has automated contract coverage. Its inspection, diagnostics, application, media, package, reversible-control, and connection-lifecycle paths have also been accepted against a configured physical Android device through both the primary local ADB server and an isolated secondary server using `AdbServerMode.Remote`. The OCI image build and authenticated MCP topology have been accepted with rootless Podman. Cross-host ADB-server acceptance, exact Docker Engine execution, and public release remain outstanding.
+The current implementation is runnable and has automated contract coverage. Its inspection, diagnostics, application, media, package, reversible-control, and connection-lifecycle paths have also been accepted against a configured physical Android device through local, isolated remote-mode, and two-container remote ADB topologies. The OCI image, authenticated MCP boundary, private container network, non-root service and ADB-server containers, and persisted ADB key replacement path have been accepted with rootless Podman. Exact Docker Engine execution and public release remain outstanding.
 
 ## Included MCP tools
 
@@ -185,6 +185,8 @@ After publishing the Windows executable, `.\scripts\smoke-test.ps1` starts it hi
 
 For a configured ignored local device alias, `.\scripts\device-acceptance.ps1 -DeviceAlias <alias>` runs the structured read-only MCP acceptance suite without printing raw diagnostic or package data. Add `-IncludeConnectionLifecycle` only during an authorized maintenance window; it exercises connect, reconnect, disconnect, restores the connection, and fails unless final health is online and authorized. Add `-IncludeControls -ControlAppAlias <allowlisted-alias>` only when reversible wake, Home, launch/stop, media Pause/Play, and volume Down/Up tests are authorized. Add `-IncludePackageAdministration -ArtifactAlias <disposable-alias>` only for a checksum-pinned disposable APK whose install and removal are both authorized. The harness starts and stops an exact local service process and passes sensitive local configuration only through its temporary child-process environment.
 
+The same harness can target an existing authenticated service—such as a container—using `-SkipProcessStart -BaseUri <uri> -ApiKey <key>`. Local configuration remains operator-side reference data for aliases and expected controls; it is not sent through MCP.
+
 During an authorized maintenance window on Windows, `.\scripts\remote-adb-acceptance.ps1 -DeviceAlias <alias>` starts an isolated loopback-only secondary ADB server, connects the configured device without printing its selector, and runs the full read-only and connection-lifecycle suite through `AdbServerMode.Remote`. It verifies that the secondary listener is restricted to loopback, leaves the primary ADB server untouched, restores the secondary connection before completion, stops the exact secondary server, and deletes its temporary output files. This validates the remote ADB protocol path without claiming cross-host network acceptance.
 
 ## Publish and host
@@ -204,11 +206,12 @@ Build and smoke-test the Linux container from a Docker-capable host:
 
 ```powershell
 .\scripts\docker-smoke-test.ps1
+.\scripts\docker-remote-topology-test.ps1 -SkipBuild
 ```
 
-The image runs as the non-root .NET `app` account, binds container port `8080`, installs Ubuntu Noble's packaged `adb`, and requires an API key whenever exposed beyond loopback. The smoke harness creates an ephemeral API key and uniquely named container, verifies health plus the complete MCP tool catalogue over a loopback-only published port, and removes the container. Site-specific configuration must be supplied at runtime; `.dockerignore` prevents local configuration and build artifacts from entering the build context. Persist `/var/lib/adbmcp/adb` when container-local ADB trust is required and `/app/logs` when file logs must survive replacement. Prefer a configured remote ADB server for container deployments; host USB access and container-local ADB key persistence have not yet been accepted.
+The image runs as the non-root .NET `app` account, binds container port `8080`, installs Ubuntu Noble's packaged `adb`, and requires an API key whenever exposed beyond loopback. The basic smoke harness creates an ephemeral API key and uniquely named container, verifies health plus the complete MCP tool catalogue over a loopback-only published port, and removes the container. The remote-topology harness adds a non-root ADB-server sidecar, private network, configured remote-mode device profile, persistent ADB-key volume, server replacement, and an unavailable-device health probe without requiring a physical device. Both are configured in CI. Site-specific configuration must be supplied at runtime; `.dockerignore` prevents local configuration and build artifacts from entering the build context. Persist `/var/lib/adbmcp/adb` when container-local ADB trust is required and `/app/logs` when file logs must survive replacement.
 
-NativeAOT is intentionally disabled because MCP assembly tool discovery uses reflection. The image has passed the authenticated smoke topology under rootless Podman; the same harness is configured as a Docker Engine CI job, but exact Docker Engine execution remains to be observed.
+NativeAOT is intentionally disabled because MCP assembly tool discovery uses reflection. The image and physical two-container remote ADB topology have passed under rootless Podman; both smoke harnesses are configured as Docker Engine CI jobs, but exact Docker Engine execution remains to be observed.
 
 ## Security model
 

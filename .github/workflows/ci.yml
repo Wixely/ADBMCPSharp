@@ -36,3 +36,6 @@ jobs:
       - name: Build and smoke-test container
         shell: pwsh
         run: ./scripts/docker-smoke-test.ps1
+      - name: Smoke-test remote ADB container topology
+        shell: pwsh
+        run: ./scripts/docker-remote-topology-test.ps1 -SkipBuild

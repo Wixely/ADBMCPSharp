@@ -4,6 +4,9 @@ param(
     [string]$DeviceAlias,
     [string]$Executable,
     [string]$LocalConfig,
+    [string]$BaseUri = 'http://localhost:21990',
+    [string]$ApiKey,
+    [switch]$SkipProcessStart,
     [string]$AdbServerAlias,
     [ValidateSet('Local', 'Remote')]
     [string]$AdbServerMode,
@@ -19,14 +22,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-if ([string]::IsNullOrWhiteSpace($Executable)) {
+if (-not $SkipProcessStart -and [string]::IsNullOrWhiteSpace($Executable)) {
     $Executable = Join-Path $repositoryRoot 'artifacts\publish\win-x64\ADBMCPSharp.exe'
 }
 if ([string]::IsNullOrWhiteSpace($LocalConfig)) {
     $LocalConfig = Join-Path $repositoryRoot 'src\ADBMCPSharp\ADBMCPSharp.Local.json'
 }
 
-$resolvedExecutable = (Resolve-Path $Executable).Path
+$resolvedExecutable = if ($SkipProcessStart) { $null } else { (Resolve-Path $Executable).Path }
 $configuration = Get-Content -Raw (Resolve-Path $LocalConfig) | ConvertFrom-Json
 $deviceProperty = $configuration.Adb.Devices.PSObject.Properties |
     Where-Object { $_.Name -eq $DeviceAlias } |
@@ -132,16 +135,19 @@ try {
         }
     }
 
-    $serviceProcess = Start-Process -FilePath $resolvedExecutable `
-        -WorkingDirectory (Split-Path -Parent $resolvedExecutable) -PassThru -WindowStyle Hidden
+    if (-not $SkipProcessStart) {
+        $serviceProcess = Start-Process -FilePath $resolvedExecutable `
+            -WorkingDirectory (Split-Path -Parent $resolvedExecutable) -PassThru -WindowStyle Hidden
+    }
     $health = $null
     for ($attempt = 0; $attempt -lt 20 -and $null -eq $health; $attempt++) {
-        try { $health = Invoke-RestMethod -Uri 'http://localhost:21990/healthz' -TimeoutSec 1 }
+        try { $health = Invoke-RestMethod -Uri ($BaseUri + '/healthz') -TimeoutSec 1 }
         catch { Start-Sleep -Milliseconds 250 }
     }
     if ($null -eq $health) { throw 'Health endpoint did not become ready.' }
 
     $headers = @{ Accept = 'application/json, text/event-stream' }
+    if (-not [string]::IsNullOrWhiteSpace($ApiKey)) { $headers.Authorization = 'Bearer ' + $ApiKey }
     $initialize = @{
         jsonrpc = '2.0'
         id = 1
@@ -152,14 +158,15 @@ try {
             clientInfo = @{ name = 'device-acceptance'; version = '1.0' }
         }
     } | ConvertTo-Json -Depth 6 -Compress
-    $initializeResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+    $initializeResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
         -Headers $headers -ContentType 'application/json' -Body $initialize -TimeoutSec 10
     $sessionHeaders = @{
         Accept = 'application/json, text/event-stream'
         'Mcp-Session-Id' = $initializeResponse.Headers['Mcp-Session-Id']
         'MCP-Protocol-Version' = '2025-06-18'
     }
-    $null = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+    if (-not [string]::IsNullOrWhiteSpace($ApiKey)) { $sessionHeaders.Authorization = 'Bearer ' + $ApiKey }
+    $null = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
         -Headers $sessionHeaders -ContentType 'application/json' `
         -Body '{"jsonrpc":"2.0","method":"notifications/initialized"}' -TimeoutSec 10
 
@@ -170,7 +177,7 @@ try {
             method = 'tools/call'
             params = @{ name = $Name; arguments = $Arguments }
         } | ConvertTo-Json -Depth 8 -Compress
-        $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+        $response = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
             -Headers $sessionHeaders -ContentType 'application/json' -Body $body -TimeoutSec 30
         $rpc = Get-SseJson $response
         if ($null -ne $rpc.error) { throw ('MCP error: ' + $rpc.error.message) }
