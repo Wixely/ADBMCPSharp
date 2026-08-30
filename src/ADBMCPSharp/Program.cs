@@ -15,7 +15,9 @@ using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Options;
 using Serilog;
 
-var contentRoot = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+// AppContext points at the application directory for both framework-dependent
+// (`dotnet ADBMCPSharp.dll`) and self-contained deployments.
+var contentRoot = AppContext.BaseDirectory;
 var isWindowsService = WindowsServiceHelpers.IsWindowsService();
 
 Log.Logger = new LoggerConfiguration()

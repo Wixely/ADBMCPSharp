@@ -1,29 +1,36 @@
 [CmdletBinding()]
 param(
     [string]$Executable,
-    [string]$DiscoveryServerAlias
+    [string]$DiscoveryServerAlias,
+    [string]$BaseUri = 'http://localhost:21990',
+    [string]$ApiKey,
+    [switch]$SkipProcessStart
 )
 
 $ErrorActionPreference = 'Stop'
-if ([string]::IsNullOrWhiteSpace($Executable)) {
+if (-not $SkipProcessStart -and [string]::IsNullOrWhiteSpace($Executable)) {
     $Executable = Join-Path (Split-Path -Parent $PSScriptRoot) 'artifacts\publish\win-x64\ADBMCPSharp.exe'
 }
-$resolvedExecutable = Resolve-Path $Executable
-$workingDirectory = Split-Path -Parent $resolvedExecutable
-$serviceProcess = Start-Process -FilePath $resolvedExecutable -WorkingDirectory $workingDirectory -PassThru -WindowStyle Hidden
+$serviceProcess = $null
+if (-not $SkipProcessStart) {
+    $resolvedExecutable = Resolve-Path $Executable
+    $workingDirectory = Split-Path -Parent $resolvedExecutable
+    $serviceProcess = Start-Process -FilePath $resolvedExecutable -WorkingDirectory $workingDirectory -PassThru -WindowStyle Hidden
+}
 
 try {
     $health = $null
     for ($attempt = 0; $attempt -lt 20 -and $null -eq $health; $attempt++) {
-        try { $health = Invoke-RestMethod -Uri 'http://localhost:21990/healthz' -TimeoutSec 1 }
+        try { $health = Invoke-RestMethod -Uri ($BaseUri + '/healthz') -TimeoutSec 1 }
         catch { Start-Sleep -Milliseconds 250 }
     }
     if ($null -eq $health) { throw 'Health endpoint did not become ready.' }
     Write-Output ('HEALTH=' + ($health | ConvertTo-Json -Compress))
 
     $headers = @{ Accept = 'application/json, text/event-stream' }
+    if (-not [string]::IsNullOrWhiteSpace($ApiKey)) { $headers.Authorization = 'Bearer ' + $ApiKey }
     $body = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke-test","version":"1.0"}}}'
-    $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+    $response = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
         -Headers $headers -ContentType 'application/json' -Body $body -TimeoutSec 10
     Write-Output ('MCP_STATUS=' + $response.StatusCode)
     Write-Output ('MCP_CONTENT_TYPE=' + $response.Headers['Content-Type'])
@@ -36,12 +43,13 @@ try {
         'Mcp-Session-Id' = $sessionId
         'MCP-Protocol-Version' = '2025-06-18'
     }
+    if (-not [string]::IsNullOrWhiteSpace($ApiKey)) { $sessionHeaders.Authorization = 'Bearer ' + $ApiKey }
     $initializedBody = '{"jsonrpc":"2.0","method":"notifications/initialized"}'
-    $null = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+    $null = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
         -Headers $sessionHeaders -ContentType 'application/json' -Body $initializedBody -TimeoutSec 10
 
     $toolsBody = '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
-    $toolsResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+    $toolsResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
         -Headers $sessionHeaders -ContentType 'application/json' -Body $toolsBody -TimeoutSec 10
     $expectedTools = @(
         'adb_list_devices', 'adb_list_adb_servers', 'adb_discover_devices',
@@ -65,7 +73,7 @@ try {
             method = 'tools/call'
             params = @{ name = 'adb_list_adb_servers'; arguments = @{} }
         } | ConvertTo-Json -Depth 5 -Compress
-        $serverListResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+        $serverListResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
             -Headers $sessionHeaders -ContentType 'application/json' -Body $serverListBody -TimeoutSec 10
 
         $discoveryBody = @{
@@ -74,7 +82,7 @@ try {
             method = 'tools/call'
             params = @{ name = 'adb_discover_devices'; arguments = @{ serverAlias = $DiscoveryServerAlias } }
         } | ConvertTo-Json -Depth 5 -Compress
-        $discoveryResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+        $discoveryResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
             -Headers $sessionHeaders -ContentType 'application/json' -Body $discoveryBody -TimeoutSec 20
 
         $serverDataLine = @($serverListResponse.Content -split "`n" | Where-Object { $_ -like 'data: *' })[-1]

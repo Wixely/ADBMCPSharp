@@ -2,7 +2,7 @@
 
 ADBMCPSharp is a .NET 10 MCP server for controlled Android Debug Bridge access. It maps configured aliases to local or remote ADB-server devices and exposes bounded inspection and explicitly gated controls over MCP Streamable HTTP. Normal tools never expose a raw shell, arbitrary intents, arbitrary key codes, device selectors, network addresses, or filesystem paths. An optional break-glass arbitrary-command tool can deliberately bypass those semantic boundaries for specifically enabled devices.
 
-The current implementation is runnable and has automated contract coverage. Its inspection, diagnostics, application, media, package, and reversible-control paths have also been accepted against a configured physical Android device through a local ADB server. Remote-server and Docker topology acceptance and public release remain outstanding.
+The current implementation is runnable and has automated contract coverage. Its inspection, diagnostics, application, media, package, reversible-control, and connection-lifecycle paths have also been accepted against a configured physical Android device through a local ADB server. The OCI image build and authenticated MCP topology have been accepted with rootless Podman. Remote ADB-server acceptance, exact Docker Engine execution, and public release remain outstanding.
 
 ## Included MCP tools
 
@@ -193,7 +193,15 @@ Windows builds support interactive execution and Windows Service hosting. Instal
 
 Linux builds run interactively or with the example [`adbmcp.service`](deploy/systemd/adbmcp.service). The unit assumes `/opt/adbmcp`, a dedicated `adbmcp` account, and `/etc/adbmcp/environment`; adjust ownership and paths for the target host.
 
-NativeAOT is intentionally disabled because MCP assembly tool discovery uses reflection. Docker packaging is intentionally deferred until remote-server networking, local server/device access, and ADB-key persistence are tested and documented. No support is claimed for either yet.
+Build and smoke-test the Linux container from a Docker-capable host:
+
+```powershell
+.\scripts\docker-smoke-test.ps1
+```
+
+The image runs as the non-root .NET `app` account, binds container port `8080`, installs Ubuntu Noble's packaged `adb`, and requires an API key whenever exposed beyond loopback. The smoke harness creates an ephemeral API key and uniquely named container, verifies health plus the complete MCP tool catalogue over a loopback-only published port, and removes the container. Site-specific configuration must be supplied at runtime; `.dockerignore` prevents local configuration and build artifacts from entering the build context. Persist `/var/lib/adbmcp/adb` when container-local ADB trust is required and `/app/logs` when file logs must survive replacement. Prefer a configured remote ADB server for container deployments; host USB access and container-local ADB key persistence have not yet been accepted.
+
+NativeAOT is intentionally disabled because MCP assembly tool discovery uses reflection. The image has passed the authenticated smoke topology under rootless Podman; the same harness is configured as a Docker Engine CI job, but exact Docker Engine execution remains to be observed.
 
 ## Security model
 

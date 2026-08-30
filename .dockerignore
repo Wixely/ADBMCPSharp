@@ -1,0 +1,16 @@
+.git
+.github
+.vs
+.vscode
+**/bin
+**/obj
+artifacts
+logs
+TestResults
+secrets
+*.log
+*.local.json
+**/*.Local.json
+.env
+PLAN.md
+AGENTS.md
