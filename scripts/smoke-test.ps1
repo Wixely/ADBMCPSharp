@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$Executable
+    [string]$Executable,
+    [string]$DiscoveryServerAlias
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,7 +44,11 @@ try {
     $toolsResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
         -Headers $sessionHeaders -ContentType 'application/json' -Body $toolsBody -TimeoutSec 10
     $expectedTools = @(
-        'adb_list_devices', 'adb_get_device_status', 'adb_list_allowed_apps', 'adb_get_app_status',
+        'adb_list_devices', 'adb_list_adb_servers', 'adb_discover_devices',
+        'adb_get_device_status', 'adb_list_allowed_apps', 'adb_get_app_status', 'adb_list_installed_apps',
+        'adb_list_diagnostics', 'adb_run_diagnostic',
+        'adb_get_media_status', 'adb_send_media_action', 'adb_send_volume_action',
+        'adb_list_installable_apks', 'adb_install_apk', 'adb_uninstall_app', 'adb_execute_arbitrary_command',
         'adb_get_capabilities', 'adb_wake_device', 'adb_sleep_device', 'adb_send_navigation',
         'adb_launch_app', 'adb_stop_app'
     )
@@ -51,6 +56,33 @@ try {
         if ($toolsResponse.Content -notmatch [Regex]::Escape($tool)) { throw "MCP tool catalogue is missing $tool." }
     }
     Write-Output ('MCP_TOOLS=' + $expectedTools.Count)
+
+    if (-not [string]::IsNullOrWhiteSpace($DiscoveryServerAlias)) {
+        $serverListBody = @{
+            jsonrpc = '2.0'
+            id = 3
+            method = 'tools/call'
+            params = @{ name = 'adb_list_adb_servers'; arguments = @{} }
+        } | ConvertTo-Json -Depth 5 -Compress
+        $serverListResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+            -Headers $sessionHeaders -ContentType 'application/json' -Body $serverListBody -TimeoutSec 10
+
+        $discoveryBody = @{
+            jsonrpc = '2.0'
+            id = 4
+            method = 'tools/call'
+            params = @{ name = 'adb_discover_devices'; arguments = @{ serverAlias = $DiscoveryServerAlias } }
+        } | ConvertTo-Json -Depth 5 -Compress
+        $discoveryResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:21990/mcp' -Method Post `
+            -Headers $sessionHeaders -ContentType 'application/json' -Body $discoveryBody -TimeoutSec 20
+
+        $serverDataLine = @($serverListResponse.Content -split "`n" | Where-Object { $_ -like 'data: *' })[-1]
+        $discoveryDataLine = @($discoveryResponse.Content -split "`n" | Where-Object { $_ -like 'data: *' })[-1]
+        $serverData = $serverDataLine.Substring(6) | ConvertFrom-Json
+        $discoveryData = $discoveryDataLine.Substring(6) | ConvertFrom-Json
+        Write-Output ('ADB_SERVERS=' + $serverData.result.content[0].text)
+        Write-Output ('ADB_DISCOVERY=' + $discoveryData.result.content[0].text)
+    }
 }
 finally {
     if ($null -ne $serviceProcess -and -not $serviceProcess.HasExited) {

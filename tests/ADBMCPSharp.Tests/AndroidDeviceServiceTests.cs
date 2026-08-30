@@ -91,11 +91,75 @@ public sealed class AndroidDeviceServiceTests
         Assert.Equal("org.example.player", fake.Requests[0].Value);
     }
 
-    private static AndroidDeviceService CreateService(FakeTransport fake, PolicyOptions? policy = null)
+    [Fact]
+    public async Task InstalledAppListingIsDeniedByDefault()
+    {
+        var fake = new FakeTransport(_ => throw new InvalidOperationException("Transport should not be called."));
+
+        var result = await CreateService(fake).ListInstalledAppsAsync("living-room", InstalledAppScope.User, CancellationToken.None);
+
+        Assert.Equal(OperationState.Denied, result.State);
+        Assert.Empty(fake.Requests);
+    }
+
+    [Fact]
+    public async Task InstalledAppListingIsBoundedWhenEnabled()
+    {
+        var fake = new FakeTransport(request => request.Kind == AdbRequestKind.ListInstalledPackages
+            ? Ok("package:org.example.one\npackage:org.example.two\npackage:org.example.three")
+            : throw new InvalidOperationException());
+        var policy = new PolicyOptions { InstalledAppListingEnabled = true };
+
+        var result = await CreateService(fake, policy, maxInstalledAppResults: 2)
+            .ListInstalledAppsAsync("living-room", InstalledAppScope.User, CancellationToken.None);
+
+        Assert.Equal(OperationState.ObservedComplete, result.State);
+        Assert.Equal(2, result.Count);
+        Assert.True(result.Truncated);
+        Assert.Equal(["org.example.one", "org.example.two"], result.Apps.Select(app => app.PackageName));
+        Assert.Equal(nameof(InstalledAppScope.User), fake.Requests[0].Value);
+    }
+
+    [Fact]
+    public async Task MediaInspectionRedactsUnrecognizedPackage()
+    {
+        var fake = new FakeTransport(request => request.Kind == AdbRequestKind.GetMediaSession
+            ? Ok("Media button session is MediaSessionRecord{x u0 org.private.player/session}\nactive=true")
+            : throw new InvalidOperationException());
+        var policy = new PolicyOptions { MediaInspectionEnabled = true };
+
+        var result = await CreateService(fake, policy).GetMediaStatusAsync("living-room", CancellationToken.None);
+
+        Assert.Equal(OperationState.ObservedComplete, result.State);
+        Assert.Empty(result.Sessions);
+        Assert.DoesNotContain("org.private.player", System.Text.Json.JsonSerializer.Serialize(result));
+    }
+
+    [Fact]
+    public async Task MediaActionRequiresCategoryAndActionAllowlist()
+    {
+        var fake = new FakeTransport(_ => Ok());
+        var policy = new PolicyOptions { MediaControlEnabled = true, AllowedMediaActions = [MediaAction.Play, MediaAction.Pause] };
+        var service = CreateService(fake, policy);
+
+        var denied = await service.SendMediaActionAsync("living-room", MediaAction.Stop, CancellationToken.None);
+        var accepted = await service.SendMediaActionAsync("living-room", MediaAction.Play, CancellationToken.None);
+
+        Assert.Equal(OperationState.Denied, denied.State);
+        Assert.Equal(OperationState.Accepted, accepted.State);
+        Assert.Single(fake.Requests);
+        Assert.Equal(nameof(MediaAction.Play), fake.Requests[0].Value);
+    }
+
+    private static AndroidDeviceService CreateService(
+        FakeTransport fake,
+        PolicyOptions? policy = null,
+        int maxInstalledAppResults = 200)
     {
         var adb = new AdbOptions
         {
             VerificationDelayMilliseconds = 0,
+            MaxInstalledAppResults = maxInstalledAppResults,
             Devices = new()
             {
                 ["living-room"] = new()
@@ -109,7 +173,7 @@ public sealed class AndroidDeviceServiceTests
         var adbOptions = Options.Create(adb);
         var inventory = new DeviceInventory(adbOptions);
         var capabilityPolicy = new CapabilityPolicy(Options.Create(policy ?? new()));
-        return new(inventory, capabilityPolicy, fake, adbOptions, NullLogger<AndroidDeviceService>.Instance);
+        return new(inventory, capabilityPolicy, fake, new DeviceOperationCoordinator(), adbOptions, NullLogger<AndroidDeviceService>.Instance);
     }
 
     private static AdbExecutionResult Ok(string output = "") => new(true, output);
@@ -117,6 +181,9 @@ public sealed class AndroidDeviceServiceTests
     private sealed class FakeTransport(Func<AdbRequest, AdbExecutionResult> handler) : IAdbTransport
     {
         public List<AdbRequest> Requests { get; } = [];
+
+        public Task<AdbExecutionResult> ExecuteServerAsync(AdbServerOptions server, AdbServerRequest request, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Server-level transport should not be called.");
 
         public Task<AdbExecutionResult> ExecuteAsync(AdbServerOptions server, string deviceSelector, AdbRequest request, CancellationToken cancellationToken)
         {

@@ -1,6 +1,6 @@
 # ADBMCPSharp
 
-ADBMCPSharp is a .NET 10 MCP server for controlled Android Debug Bridge access. It maps configured aliases to local or remote ADB-server devices and exposes bounded inspection and explicitly gated controls over MCP Streamable HTTP. It never exposes a raw shell, arbitrary intents, arbitrary key codes, device selectors, network addresses, or filesystem paths to MCP clients.
+ADBMCPSharp is a .NET 10 MCP server for controlled Android Debug Bridge access. It maps configured aliases to local or remote ADB-server devices and exposes bounded inspection and explicitly gated controls over MCP Streamable HTTP. Normal tools never expose a raw shell, arbitrary intents, arbitrary key codes, device selectors, network addresses, or filesystem paths. An optional break-glass arbitrary-command tool can deliberately bypass those semantic boundaries for specifically enabled devices.
 
 The current implementation is a runnable first vertical slice. It has fake-transport coverage but has not yet been accepted against a physical device, remote ADB server, Docker topology, or public release.
 
@@ -13,6 +13,36 @@ Read-only inspection is enabled by default:
 - `adb_list_allowed_apps`
 - `adb_get_app_status`
 - `adb_get_capabilities`
+
+Curated device diagnostics are read-only, structured, and disabled by default:
+
+- `adb_list_diagnostics` lists `Battery`, `Memory`, `Storage`, `CpuLoad`, `Runtime`, `Display`, and `Security`, including effective enablement for the selected device.
+- `adb_run_diagnostic` runs one globally allowlisted option. It returns only selected fields and never exposes raw ADB diagnostic output.
+
+Passive network discovery is read-only but disabled by default:
+
+- `adb_list_adb_servers` lists configured aliases and local/remote modes without coordinates.
+- `adb_discover_devices` invokes the selected ADB server's mDNS discovery and returns bounded, redacted advertisements.
+
+Installed-application enumeration is privacy-sensitive and disabled by default:
+
+- `adb_list_installed_apps` returns a bounded list of package identifiers for `All`, `User`, or `System` scope.
+
+Media inspection and control are independently gated and disabled by default:
+
+- `adb_get_media_status` returns the recognized allowlisted media-app alias, playback state, position, speed, and optionally bounded title/artist/album metadata. Unrecognized package identities are redacted.
+- `adb_send_media_action` accepts only `Play`, `Pause`, `PlayPause`, `Stop`, `Next`, `Previous`, `FastForward`, or `Rewind` when that action is globally allowlisted.
+- `adb_send_volume_action` accepts only `Up`, `Down`, or `Mute` when independently enabled and allowlisted.
+
+Package administration is high-impact, disabled by default, and requires explicit confirmation on every request:
+
+- `adb_list_installable_apks` lists configured artifact aliases without exposing their source, hash, path, URL, or package identifier.
+- `adb_install_apk` installs only a server-configured artifact allowed for that device after size and SHA-256 verification.
+- `adb_uninstall_app` removes only an allowlisted application whose per-app uninstall flag is enabled.
+
+Break-glass administration is disabled by default:
+
+- `adb_execute_arbitrary_command` accepts a bounded argument array only after `Policy:ArbitraryCommandsEnabled`, the selected device's `AllowArbitraryCommands`, and per-call `confirmHighImpact` are all true. The configured device selector is always inserted by the server; selector/global options and known ADB server-management commands are rejected.
 
 Controls are disabled by default and independently gated:
 
@@ -29,7 +59,7 @@ Outcomes distinguish observed completion, acceptance without observation, failur
 - An operator-installed `adb` executable from a trusted Android SDK Platform-Tools distribution
 - An already-authorized ADB connection; wireless pairing remains an operator workflow
 
-ADBMCPSharp does not start a daemon, pair devices, manage ADB keys, or redistribute platform-tools. The configured executable may connect to a local ADB server or use `adb -H host -P port` for a trusted remote ADB server.
+ADBMCPSharp does not explicitly start or manage a daemon, pair devices, manage ADB keys, or redistribute platform-tools. The configured executable may cause the normal `adb` client to start its local server when needed, connect to a local ADB server, or use `adb -H host -P port` for a trusted remote ADB server.
 
 ## Configure
 
@@ -39,6 +69,13 @@ Keep checked-in [`ADBMCPSharp.json`](src/ADBMCPSharp/ADBMCPSharp.json) unchanged
 {
   "Adb": {
     "ExecutablePath": "adb",
+    "MaxDiscoveryResults": 25,
+    "DiscoveryHandleLifetimeSeconds": 60,
+    "MaxInstalledAppResults": 200,
+    "ArbitraryCommandTimeoutSeconds": 30,
+    "MaxArbitraryArgumentCount": 32,
+    "MaxArbitraryArgumentLength": 1024,
+    "MaxArbitraryTotalCharacters": 8192,
     "Servers": {
       "local": { "Mode": "Local", "Port": 5037 },
       "trusted-remote": { "Mode": "Remote", "Host": "adb-server.example.invalid", "Port": 5037 }
@@ -48,24 +85,72 @@ Keep checked-in [`ADBMCPSharp.json`](src/ADBMCPSharp/ADBMCPSharp.json) unchanged
         "Server": "local",
         "Selector": "operator-configured-selector",
         "DisplayName": "Living room device",
+        "Capabilities": {
+          "AllowInstalledAppListing": true,
+          "AllowDiagnostics": true,
+          "AllowMediaInspection": true,
+          "AllowMediaMetadata": true,
+          "AllowMediaControl": true,
+          "AllowVolumeControl": true,
+          "AllowPackageInstall": false,
+          "AllowPackageUninstall": false,
+          "AllowArbitraryCommands": false
+        },
         "AllowedApps": {
-          "player": { "Package": "org.example.player", "DisplayName": "Player" }
+          "player": { "Package": "org.example.player", "DisplayName": "Player", "AllowUninstall": false }
         }
+      }
+    },
+    "ApkArtifacts": {
+      "player-release": {
+        "Package": "org.example.player",
+        "DisplayName": "Player release",
+        "Source": "C:\\protected-artifacts\\player.apk",
+        "Sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "AllowReplace": true,
+        "AllowedDevices": ["living-room"]
       }
     }
   },
   "Policy": {
     "InspectionEnabled": true,
+    "DiscoveryEnabled": false,
+    "InstalledAppListingEnabled": false,
+    "DiagnosticsEnabled": false,
+    "MediaInspectionEnabled": false,
+    "MediaMetadataEnabled": false,
+    "MediaControlEnabled": false,
+    "VolumeControlEnabled": false,
+    "PackageInstallEnabled": false,
+    "PackageUninstallEnabled": false,
+    "ArbitraryCommandsEnabled": false,
     "PowerControlEnabled": false,
     "NavigationControlEnabled": false,
     "AppLaunchEnabled": false,
     "AppStopEnabled": false,
-    "AllowedNavigationActions": ["Home", "Back"]
+    "AllowedNavigationActions": ["Home", "Back"],
+    "AllowedMediaActions": ["Play", "Pause", "PlayPause"],
+    "AllowedVolumeActions": ["Up", "Down", "Mute"],
+    "AllowedDiagnostics": ["Battery", "Memory", "Storage", "CpuLoad", "Runtime", "Display", "Security"]
   }
 }
 ```
 
 Configuration order is JSON, environment-specific JSON, ignored local JSON, environment variables, `ADBMCP_`-prefixed environment variables, then command-line arguments. Nested environment settings use double underscores, such as `ADBMCP_Policy__PowerControlEnabled=true`.
+
+Set `Policy:DiscoveryEnabled` to `true` to allow passive discovery. The tool uses only `adb mdns check` and `adb mdns services`; it does not sweep subnets, probe port 5555, or issue pairing or connection commands. Results classify legacy TCP ADB, wireless debugging, and pairing-window advertisements while replacing service-instance names and endpoints with short-lived opaque handles. One physical device may produce multiple advertisements. With a remote ADB server alias, discovery observes that server host's LAN rather than the MCP service host's LAN.
+
+The ADB server can independently auto-connect wireless devices that it has already paired with. For a remote server, govern that behavior on the remote host through its ADB configuration, including `ADB_MDNS_AUTO_CONNECT`; ADBMCPSharp does not change remote-server policy.
+
+Set `Policy:InstalledAppListingEnabled` to `true` to expose installed package identifiers. Inspection must also be enabled, and the selected device's `Capabilities:AllowInstalledAppListing` override must remain enabled. Results are capped by `Adb:MaxInstalledAppResults`; reaching the cap is reported as truncation. No APK paths, versions, permissions, installers, or application data are returned.
+
+Set `Policy:DiagnosticsEnabled` to `true`, keep the selected device's `Capabilities:AllowDiagnostics` enabled, and place each desired option in `Policy:AllowedDiagnostics`. Battery reports charge/power/health values; Memory reports selected `/proc/meminfo` totals; Storage reports aggregate `/data` capacity; CpuLoad reports kernel load averages; Runtime reports uptime and aggregate idle time; Display reports physical/override size and density; Security reports only bounded build/debug/verified-boot/flash-lock/SELinux fields. Diagnostic commands and parsers are fixed internally, and raw output is discarded.
+
+Media status, media metadata, media actions, and volume actions each require their global policy gate plus the device capability override. Media and volume actions must also appear in their closed global allowlists. Only media sessions belonging to a configured allowed-app package are returned; metadata has its own privacy gate.
+
+APK sources are operator configuration, never tool input. A source may be an absolute local `.apk` path or a credential-free HTTPS URL without a query or fragment. Every artifact requires a pinned SHA-256 digest (replace the all-zero example) and at least one allowed device alias. Downloads and local files are size-bounded, network downloads are time-bounded, HTTPS redirects are rejected, and temporary downloads are deleted after the operation. Put authenticated artifacts behind a separately managed local file or credential-free protected endpoint; credentials are intentionally not accepted in artifact URLs. Installation and uninstallation each require their global gate, device gate, allowlist entry, and a `true` confirmation argument. Uninstallation additionally requires `AllowUninstall` on the allowed app.
+
+`adb_execute_arbitrary_command` is an intentional break-glass exception to the normal security model. Enabling it grants the MCP client the effective privileges of ADB on that device, including arbitrary device shell execution; commands such as `push` and `pull` may also access files visible to the service account. Returned output is raw, may contain secrets or personal data, and is capped by the transport's 65,536-character capture limit. Arguments are passed without a host shell, but a requested Android `shell` operation is interpreted by the device shell. Keep the global gate off unless actively needed, enable it only for selected devices, require authenticated private-network MCP access, and disable it again after use. Argument contents and output are intentionally omitted from audit logs.
 
 The service binds to `localhost:21990` and serves MCP at `/mcp`. A non-loopback binding is rejected unless `Server:ApiKey` has at least 24 characters. Supply that secret through protected runtime configuration, preferably `ADBMCP_Server__ApiKey`; clients can use `Authorization: Bearer ...` or `X-ADBMCP-Key`. MCP requests are limited to 120 per minute per client address by default. `/healthz` contains no device data and remains unauthenticated for service monitoring.
 
@@ -97,12 +182,17 @@ NativeAOT is intentionally disabled because MCP assembly tool discovery uses ref
 
 ## Security model
 
-- Tool contracts accept aliases and enums only.
+- Normal tool contracts accept aliases and enums only; the explicitly marked break-glass tool accepts bounded ADB arguments.
 - Device selectors, ADB server coordinates, and package names stay in server-side configuration.
 - `ProcessStartInfo.ArgumentList` passes fixed command tokens without a shell.
 - Output capture is bounded and only explicitly parsed facts are returned.
+- Passive discovery is separately gated and redacts mDNS instance names, device addresses, ports, and serial-derived identifiers.
+- Installed package enumeration is separately gated, bounded, and returns validated package identifiers only.
+- Curated diagnostics use a global gate, per-device gate, and option allowlist; only structured selected fields are returned.
 - Each device has a one-operation-at-a-time lock.
 - Write requests are category-gated, device-gated, audited without raw metadata, and verified where observable.
+- APK sources and package identifiers remain server-side; installs are checksum-pinned and package changes require per-call confirmation.
+- Arbitrary ADB is triple-gated globally, per device, and per call; it is pinned to the configured device selector and omits arguments/output from audit logs, but it intentionally forfeits semantic command safety.
 - Non-loopback MCP requires an API key; use network-layer TLS because this service does not terminate TLS itself.
 
 See [`PLAN.md`](PLAN.md) for verification gaps and follow-up milestones, and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) for dependency provenance.

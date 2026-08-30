@@ -15,6 +15,18 @@ public static class AdbTools
      Description("List configured Android device aliases without exposing ADB selectors, serials, or addresses.")]
     public static string ListDevices(AndroidDeviceService service) => JsonSerializer.Serialize(service.ListDevices(), JsonOptions);
 
+    [McpServerTool(Name = "adb_list_adb_servers"),
+     Description("List configured ADB server aliases, local/remote modes, and the effective passive-discovery gate without exposing hosts or ports.")]
+    public static string ListAdbServers(AdbDiscoveryService service) => JsonSerializer.Serialize(service.ListServers(), JsonOptions);
+
+    [McpServerTool(Name = "adb_discover_devices"),
+     Description("Passively discover bounded ADB mDNS advertisements visible to a configured ADB server. Disabled by default; returns redacted opaque handles without addresses, ports, serial-derived names, or pairing data, and never issues pair or connect commands.")]
+    public static async Task<string> DiscoverDevices(
+        AdbDiscoveryService service,
+        [Description("Operator-defined ADB server alias")] string serverAlias,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.DiscoverAsync(serverAlias, cancellationToken), JsonOptions);
+
     [McpServerTool(Name = "adb_get_device_status"),
      Description("Inspect bounded connection, Android, power/display, and foreground-application state for a configured device alias.")]
     public static async Task<string> GetDeviceStatus(
@@ -38,6 +50,94 @@ public static class AdbTools
         [Description("Operator-defined allowlisted application alias")] string appAlias,
         CancellationToken cancellationToken) =>
         JsonSerializer.Serialize(await service.GetAppStatusAsync(deviceAlias, appAlias, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_list_installed_apps"),
+     Description("List a bounded set of installed Android package identifiers for a configured device. Privacy-sensitive and disabled by default; scope is restricted to All, User, or System.")]
+    public static async Task<string> ListInstalledApps(
+        AndroidDeviceService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Package scope: All, User, or System")] InstalledAppScope scope,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.ListInstalledAppsAsync(deviceAlias, scope, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_list_diagnostics"),
+     Description("List the curated read-only diagnostic options and their effective enablement for one configured device.")]
+    public static string ListDiagnostics(
+        DeviceDiagnosticService service,
+        [Description("Operator-defined device alias")] string deviceAlias) =>
+        JsonSerializer.Serialize((object?)service.List(deviceAlias) ?? new { error = "Unknown device alias." }, JsonOptions);
+
+    [McpServerTool(Name = "adb_run_diagnostic"),
+     Description("Run one enabled, read-only, structured diagnostic: Battery, Memory, Storage, CpuLoad, Runtime, Display, or Security. Raw ADB output is never returned.")]
+    public static async Task<string> RunDiagnostic(
+        DeviceDiagnosticService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Curated diagnostic option")] DiagnosticKind diagnostic,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.RunAsync(deviceAlias, diagnostic, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_get_media_status"),
+     Description("Inspect the active Android media session, playback state, position, speed, and bounded title/artist metadata. Privacy-sensitive and disabled by default; unrecognized package identifiers are redacted.")]
+    public static async Task<string> GetMediaStatus(
+        AndroidDeviceService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.GetMediaStatusAsync(deviceAlias, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_send_media_action"),
+     Description("Send one operator-allowlisted media action: Play, Pause, PlayPause, Stop, Next, Previous, FastForward, or Rewind.")]
+    public static async Task<string> SendMediaAction(
+        AndroidDeviceService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Bounded media action")] MediaAction action,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.SendMediaActionAsync(deviceAlias, action, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_send_volume_action"),
+     Description("Send one operator-allowlisted volume action: Up, Down, or Mute.")]
+    public static async Task<string> SendVolumeAction(
+        AndroidDeviceService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Bounded volume action")] VolumeAction action,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.SendVolumeActionAsync(deviceAlias, action, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_list_installable_apks"),
+     Description("List operator-configured APK artifact aliases available to a device without exposing local paths, download URLs, hashes, or package identifiers.")]
+    public static string ListInstallableApks(
+        PackageAdministrationService service,
+        [Description("Operator-defined device alias")] string deviceAlias) =>
+        JsonSerializer.Serialize((object?)service.ListInstallableApks(deviceAlias) ?? new { error = "Unknown device alias." }, JsonOptions);
+
+    [McpServerTool(Name = "adb_install_apk"),
+     Description("Install one checksum-pinned, operator-configured APK artifact on an explicitly enabled device. Requires explicit package-change confirmation.")]
+    public static async Task<string> InstallApk(
+        PackageAdministrationService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Operator-defined APK artifact alias")] string artifactAlias,
+        [Description("Must be true to confirm the installation")] bool confirmChange,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.InstallAsync(deviceAlias, artifactAlias, confirmChange, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_uninstall_app"),
+     Description("Uninstall one operator-allowlisted application with its independent uninstall flag enabled. Requires explicit package-change confirmation.")]
+    public static async Task<string> UninstallApp(
+        PackageAdministrationService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("Operator-defined allowlisted application alias")] string appAlias,
+        [Description("Must be true to confirm the removal")] bool confirmChange,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.UninstallAsync(deviceAlias, appAlias, confirmChange, cancellationToken), JsonOptions);
+
+    [McpServerTool(Name = "adb_execute_arbitrary_command"),
+     Description("BREAK-GLASS: execute arbitrary device-scoped ADB arguments on one configured device. Disabled by default, independently gated per device, bounded, audited without argument content, and requires explicit high-impact confirmation. Output may contain sensitive device data.")]
+    public static async Task<string> ExecuteArbitrary(
+        ArbitraryAdbService service,
+        [Description("Operator-defined device alias")] string deviceAlias,
+        [Description("ADB arguments after the fixed device selector; for example: [\"shell\", \"getprop\", \"ro.build.type\"]")] IReadOnlyList<string> arguments,
+        [Description("Must be true to acknowledge unrestricted device impact and potentially sensitive output")] bool confirmHighImpact,
+        CancellationToken cancellationToken) =>
+        JsonSerializer.Serialize(await service.ExecuteAsync(deviceAlias, arguments, confirmHighImpact, cancellationToken), JsonOptions);
 
     [McpServerTool(Name = "adb_get_capabilities"),
      Description("Get the effective inspection and control gates for one configured device.")]
@@ -63,11 +163,11 @@ public static class AdbTools
         JsonSerializer.Serialize(await service.SleepAsync(deviceAlias, cancellationToken), JsonOptions);
 
     [McpServerTool(Name = "adb_send_navigation"),
-     Description("Send one bounded navigation, media, or volume action that is explicitly allowlisted by the operator.")]
+     Description("Send one bounded navigation action that is explicitly allowlisted by the operator.")]
     public static async Task<string> SendNavigation(
         AndroidDeviceService service,
         [Description("Operator-defined device alias")] string deviceAlias,
-        [Description("Bounded action: Home, Back, Up, Down, Left, Right, Select, Menu, PlayPause, Next, Previous, VolumeUp, VolumeDown, or Mute")]
+        [Description("Bounded action: Home, Back, Up, Down, Left, Right, Select, or Menu")]
         NavigationAction action,
         CancellationToken cancellationToken) =>
         JsonSerializer.Serialize(await service.NavigateAsync(deviceAlias, action, cancellationToken), JsonOptions);

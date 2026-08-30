@@ -55,8 +55,17 @@ try
 
     builder.Services.AddSingleton<DeviceInventory>();
     builder.Services.AddSingleton<CapabilityPolicy>();
+    builder.Services.AddSingleton<DeviceOperationCoordinator>();
     builder.Services.AddSingleton<IAdbTransport, AdbProcessTransport>();
     builder.Services.AddSingleton<AndroidDeviceService>();
+    builder.Services.AddSingleton<DeviceDiagnosticService>();
+    builder.Services.AddSingleton<AdbDiscoveryService>();
+    builder.Services.AddSingleton<PackageAdministrationService>();
+    builder.Services.AddSingleton<ArbitraryAdbService>();
+    builder.Services.AddHttpClient("apk-artifacts").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AllowAutoRedirect = false,
+    });
     builder.Services.AddRateLimiter(rateLimiter =>
     {
         rateLimiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

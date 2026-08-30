@@ -17,4 +17,17 @@ public sealed class ToolContractTests
             Assert.DoesNotContain(forbidden, word => name.Contains(word, StringComparison.OrdinalIgnoreCase));
         }
     }
+
+    [Fact]
+    public void OnlyExplicitBreakGlassToolAcceptsArgumentArray()
+    {
+        var parameters = typeof(AdbTools).GetMethods()
+            .Where(method => method.GetCustomAttributes(typeof(McpServerToolAttribute), false).Length > 0)
+            .SelectMany(method => method.GetParameters().Select(parameter => (Method: method, Parameter: parameter)))
+            .Where(item => string.Equals(item.Parameter.Name, "arguments", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        var parameter = Assert.Single(parameters);
+        Assert.Equal("ExecuteArbitrary", parameter.Method.Name);
+    }
 }

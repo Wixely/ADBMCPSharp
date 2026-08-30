@@ -11,21 +11,45 @@
     "ExecutablePath": "adb",
     "CommandTimeoutSeconds": 10,
     "VerificationDelayMilliseconds": 350,
+    "MaxDiscoveryResults": 25,
+    "DiscoveryHandleLifetimeSeconds": 60,
+    "MaxInstalledAppResults": 200,
+    "MaxApkBytes": 536870912,
+    "ApkDownloadTimeoutSeconds": 120,
+    "PackageOperationTimeoutSeconds": 300,
+    "ArbitraryCommandTimeoutSeconds": 30,
+    "MaxArbitraryArgumentCount": 32,
+    "MaxArbitraryArgumentLength": 1024,
+    "MaxArbitraryTotalCharacters": 8192,
     "Servers": {
       "local": {
         "Mode": "Local",
         "Port": 5037
       }
     },
-    "Devices": {}
+    "Devices": {},
+    "ApkArtifacts": {}
   },
   "Policy": {
     "InspectionEnabled": true,
+    "DiscoveryEnabled": false,
+    "InstalledAppListingEnabled": false,
+    "DiagnosticsEnabled": false,
+    "MediaInspectionEnabled": false,
+    "MediaMetadataEnabled": false,
+    "MediaControlEnabled": false,
+    "VolumeControlEnabled": false,
+    "PackageInstallEnabled": false,
+    "PackageUninstallEnabled": false,
+    "ArbitraryCommandsEnabled": false,
     "PowerControlEnabled": false,
     "NavigationControlEnabled": false,
     "AppLaunchEnabled": false,
     "AppStopEnabled": false,
-    "AllowedNavigationActions": []
+    "AllowedNavigationActions": [],
+    "AllowedMediaActions": [],
+    "AllowedVolumeActions": [],
+    "AllowedDiagnostics": []
   },
   "Serilog": {
     "Using": ["Serilog.Sinks.Console", "Serilog.Sinks.File"],

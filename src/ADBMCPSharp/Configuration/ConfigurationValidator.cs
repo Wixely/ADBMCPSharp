@@ -8,7 +8,9 @@ public sealed class AdbOptionsValidator : IValidateOptions<AdbOptions>
     {
         var failures = new List<string>();
         if (string.IsNullOrWhiteSpace(options.ExecutablePath)) failures.Add("Adb:ExecutablePath is required.");
+        if (options.Servers.Count > 25) failures.Add("At most 25 configured ADB servers are supported.");
         if (options.Devices.Count > 100) failures.Add("At most 100 configured devices are supported.");
+        if (options.ApkArtifacts.Count > 100) failures.Add("At most 100 configured APK artifacts are supported.");
 
         foreach (var (alias, server) in options.Servers)
         {
@@ -34,20 +36,49 @@ public sealed class AdbOptionsValidator : IValidateOptions<AdbOptions>
             }
         }
 
+        foreach (var (alias, artifact) in options.ApkArtifacts)
+        {
+            if (!IsAlias(alias)) failures.Add($"APK artifact alias '{alias}' is invalid.");
+            if (!IsPackage(artifact.Package)) failures.Add($"APK artifact '{alias}' has an invalid package name.");
+            if (!IsArtifactSource(artifact.Source))
+                failures.Add($"APK artifact '{alias}' requires an absolute local path or credential-free HTTPS URL without query or fragment.");
+            if (artifact.Sha256.Length != 64 || !artifact.Sha256.All(char.IsAsciiHexDigit))
+                failures.Add($"APK artifact '{alias}' requires a 64-character SHA-256 value.");
+            if (artifact.AllowedDevices.Count == 0)
+                failures.Add($"APK artifact '{alias}' requires at least one allowed device alias.");
+            foreach (var deviceAlias in artifact.AllowedDevices)
+            {
+                if (!options.Devices.Keys.Any(candidate => string.Equals(candidate, deviceAlias, StringComparison.OrdinalIgnoreCase)))
+                    failures.Add($"APK artifact '{alias}' references unknown device alias '{deviceAlias}'.");
+            }
+        }
+
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 
-    private static bool IsAlias(string value) =>
+    internal static bool IsAlias(string value) =>
         value.Length is > 0 and <= 64 && value.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 
     private static bool IsSelector(string value) =>
         value.Length is > 0 and <= 200 && value[0] != '-' && value.All(c => c is >= '!' and <= '~');
 
-    private static bool IsPackage(string value) =>
+    internal static bool IsPackage(string value) =>
         value.Length is > 0 and <= 255 && value.Contains('.') &&
         value.Split('.').All(segment => segment.Length > 0 &&
             (char.IsAsciiLetter(segment[0]) || segment[0] == '_') &&
             segment.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'));
+
+    private static bool IsArtifactSource(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > 2048 || value.Any(char.IsControl)) return false;
+        if (Path.IsPathFullyQualified(value)) return value.EndsWith(".apk", StringComparison.OrdinalIgnoreCase);
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+            uri.Scheme == Uri.UriSchemeHttps &&
+            string.IsNullOrEmpty(uri.UserInfo) &&
+            string.IsNullOrEmpty(uri.Query) &&
+            string.IsNullOrEmpty(uri.Fragment) &&
+            uri.AbsolutePath.EndsWith(".apk", StringComparison.OrdinalIgnoreCase);
+    }
 }
 
 public sealed class ServerOptionsValidator : IValidateOptions<ServerOptions>

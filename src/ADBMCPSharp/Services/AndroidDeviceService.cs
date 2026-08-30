@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using ADBMCPSharp.Adb;
 using ADBMCPSharp.Configuration;
 using ADBMCPSharp.Models;
@@ -11,11 +10,11 @@ public sealed class AndroidDeviceService(
     DeviceInventory inventory,
     CapabilityPolicy policy,
     IAdbTransport transport,
+    DeviceOperationCoordinator coordinator,
     IOptions<AdbOptions> options,
     ILogger<AndroidDeviceService> logger)
 {
     private readonly AdbOptions _options = options.Value;
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _deviceLocks = new(StringComparer.OrdinalIgnoreCase);
 
     public IReadOnlyList<DeviceSummary> ListDevices() => inventory.Aliases
         .Select(alias =>
@@ -40,7 +39,8 @@ public sealed class AndroidDeviceService(
                 pair.Key,
                 string.IsNullOrWhiteSpace(pair.Value.DisplayName) ? pair.Key : pair.Value.DisplayName,
                 policy.AppLaunch(device),
-                policy.AppStop(device)))
+                policy.AppStop(device),
+                policy.PackageUninstall(device) && pair.Value.AllowUninstall))
             .ToArray();
     }
 
@@ -102,6 +102,37 @@ public sealed class AndroidDeviceService(
         }, cancellationToken);
     }
 
+    public async Task<InstalledAppListResult> ListInstalledAppsAsync(
+        string deviceAlias,
+        InstalledAppScope scope,
+        CancellationToken cancellationToken)
+    {
+        if (!inventory.TryGet(deviceAlias, out var device))
+            return new(deviceAlias, OperationState.NotFound, scope.ToString(), 0, false, [], "Unknown device alias.");
+        if (!policy.InstalledApps(device))
+            return new(device.Alias, OperationState.Denied, scope.ToString(), 0, false, [], "Installed application listing is disabled.");
+
+        return await WithDeviceLockAsync(device, async token =>
+        {
+            var result = await ExecuteAsync(device, new(AdbRequestKind.ListInstalledPackages, scope.ToString()), token);
+            if (!result.Success)
+                return new InstalledAppListResult(
+                    device.Alias, MapState(result), scope.ToString(), 0, false, [], result.Message ?? "Installed application listing failed.");
+
+            var packageNames = InstalledAppParser.Parse(result.Output, _options.MaxInstalledAppResults);
+            var apps = packageNames.Select(packageName => new InstalledApp(packageName)).ToArray();
+            var truncated = apps.Length == _options.MaxInstalledAppResults;
+            return new InstalledAppListResult(
+                device.Alias,
+                OperationState.ObservedComplete,
+                scope.ToString(),
+                apps.Length,
+                truncated,
+                apps,
+                truncated ? "The configured result limit was reached; additional packages may exist." : null);
+        }, cancellationToken);
+    }
+
     public Task<OperationResult> WakeAsync(string deviceAlias, CancellationToken cancellationToken) =>
         SetPowerAsync(deviceAlias, wake: true, cancellationToken);
 
@@ -125,6 +156,74 @@ public sealed class AndroidDeviceService(
 
     public Task<OperationResult> StopAppAsync(string deviceAlias, string appAlias, CancellationToken cancellationToken) =>
         ChangeAppAsync(deviceAlias, appAlias, stop: true, cancellationToken);
+
+    public async Task<MediaStatusResult> GetMediaStatusAsync(string deviceAlias, CancellationToken cancellationToken)
+    {
+        if (!inventory.TryGet(deviceAlias, out var device))
+            return new(deviceAlias, OperationState.NotFound, [], "Unknown device alias.");
+        if (!policy.MediaInspection(device))
+            return new(device.Alias, OperationState.Denied, [], "Media inspection is disabled.");
+
+        return await WithDeviceLockAsync(device, async token =>
+        {
+            var result = await ExecuteAsync(device, new(AdbRequestKind.GetMediaSession), token);
+            if (!result.Success)
+                return new MediaStatusResult(device.Alias, MapState(result), [], result.Message);
+
+            var parsed = MediaSessionParser.Parse(result.Output);
+            var app = device.Device.AllowedApps.FirstOrDefault(candidate =>
+                string.Equals(candidate.Value.Package, parsed.Package, StringComparison.Ordinal));
+            var recognized = app.Key is not null;
+            var sessions = recognized
+                ? new[]
+                {
+                    new MediaSessionStatus(
+                        app.Key!,
+                        parsed.PlaybackState ?? "Unknown",
+                        parsed.Active == true,
+                        parsed.PositionMilliseconds,
+                        parsed.Speed,
+                        policy.MediaMetadata(device) ? parsed.Title : null,
+                        policy.MediaMetadata(device) ? parsed.Artist : null,
+                        policy.MediaMetadata(device) ? parsed.Album : null)
+                }
+                : [];
+            var message = parsed.Package is null
+                ? "No active media session was identified."
+                : recognized ? null : "The active media session is not in the configured application allowlist and was redacted.";
+            return new MediaStatusResult(device.Alias, OperationState.ObservedComplete, sessions, message);
+        }, cancellationToken);
+    }
+
+    public async Task<OperationResult> SendMediaActionAsync(
+        string deviceAlias,
+        MediaAction action,
+        CancellationToken cancellationToken)
+    {
+        if (!inventory.TryGet(deviceAlias, out var device)) return NotFound(deviceAlias);
+        if (!policy.MediaControl(device, action)) return Denied(device.Alias, "That media action is not enabled.");
+        return await WithDeviceLockAsync(device, async token =>
+        {
+            var result = await ExecuteAsync(device, new(AdbRequestKind.MediaAction, action.ToString()), token);
+            Audit(device.Alias, "media_action", result.Success);
+            return ToOperation(device.Alias, result, "Media action was accepted by ADB.");
+        }, cancellationToken);
+    }
+
+    public async Task<OperationResult> SendVolumeActionAsync(
+        string deviceAlias,
+        VolumeAction action,
+        CancellationToken cancellationToken)
+    {
+        if (!inventory.TryGet(deviceAlias, out var device)) return NotFound(deviceAlias);
+        if (!policy.VolumeControl(device, action)) return Denied(device.Alias, "That volume action is not enabled.");
+        return await WithDeviceLockAsync(device, async token =>
+        {
+            var result = await ExecuteAsync(device, AdbRequest.Volume(action), token);
+            Audit(device.Alias, "volume_action", result.Success);
+            return ToOperation(device.Alias, result, "Volume action was accepted by ADB.");
+        }, cancellationToken);
+    }
 
     private async Task<OperationResult> SetPowerAsync(string deviceAlias, bool wake, CancellationToken cancellationToken)
     {
@@ -195,10 +294,7 @@ public sealed class AndroidDeviceService(
 
     private async Task<T> WithDeviceLockAsync<T>(ConfiguredDevice device, Func<CancellationToken, Task<T>> action, CancellationToken token)
     {
-        var gate = _deviceLocks.GetOrAdd(device.Alias, _ => new(1, 1));
-        await gate.WaitAsync(token);
-        try { return await action(token); }
-        finally { gate.Release(); }
+        return await coordinator.WithLockAsync(device.Alias, action, token);
     }
 
     private Task VerificationDelayAsync(CancellationToken token) =>
