@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/ADBMCPSharp/ADBMCPSharp.csproj" />
+  <Project Path="tests/ADBMCPSharp.Tests/ADBMCPSharp.Tests.csproj" />
+</Solution>

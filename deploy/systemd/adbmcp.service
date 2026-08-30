@@ -1,0 +1,23 @@
+[Unit]
+Description=ADBMCPSharp Android Debug Bridge MCP service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=adbmcp
+Group=adbmcp
+WorkingDirectory=/opt/adbmcp
+ExecStart=/opt/adbmcp/ADBMCPSharp
+Restart=on-failure
+RestartSec=5
+Environment=DOTNET_ENVIRONMENT=Production
+EnvironmentFile=-/etc/adbmcp/environment
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/adbmcp/logs
+
+[Install]
+WantedBy=multi-user.target

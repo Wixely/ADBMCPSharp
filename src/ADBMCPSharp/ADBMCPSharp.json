@@ -1,0 +1,51 @@
+{
+  "Server": {
+    "Host": "localhost",
+    "Port": 21990,
+    "Path": "/mcp",
+    "WindowsServiceName": "ADBMCPSharp",
+    "RateLimitPermitLimit": 120,
+    "RateLimitWindowSeconds": 60
+  },
+  "Adb": {
+    "ExecutablePath": "adb",
+    "CommandTimeoutSeconds": 10,
+    "VerificationDelayMilliseconds": 350,
+    "Servers": {
+      "local": {
+        "Mode": "Local",
+        "Port": 5037
+      }
+    },
+    "Devices": {}
+  },
+  "Policy": {
+    "InspectionEnabled": true,
+    "PowerControlEnabled": false,
+    "NavigationControlEnabled": false,
+    "AppLaunchEnabled": false,
+    "AppStopEnabled": false,
+    "AllowedNavigationActions": []
+  },
+  "Serilog": {
+    "Using": ["Serilog.Sinks.Console", "Serilog.Sinks.File"],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft.AspNetCore": "Warning"
+      }
+    },
+    "WriteTo": [
+      { "Name": "Console" },
+      {
+        "Name": "File",
+        "Args": {
+          "path": "logs/adbmcp-.log",
+          "rollingInterval": "Day",
+          "retainedFileCountLimit": 14,
+          "shared": true
+        }
+      }
+    ]
+  }
+}
