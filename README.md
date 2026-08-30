@@ -2,7 +2,7 @@
 
 ADBMCPSharp is a .NET 10 MCP server for controlled Android Debug Bridge access. It maps configured aliases to local or remote ADB-server devices and exposes bounded inspection and explicitly gated controls over MCP Streamable HTTP. Normal tools never expose a raw shell, arbitrary intents, arbitrary key codes, device selectors, network addresses, or filesystem paths. An optional break-glass arbitrary-command tool can deliberately bypass those semantic boundaries for specifically enabled devices.
 
-The current implementation is runnable and has automated contract coverage. Its inspection, diagnostics, application, media, package, reversible-control, and connection-lifecycle paths have also been accepted against a configured physical Android device through a local ADB server. The OCI image build and authenticated MCP topology have been accepted with rootless Podman. Remote ADB-server acceptance, exact Docker Engine execution, and public release remain outstanding.
+The current implementation is runnable and has automated contract coverage. Its inspection, diagnostics, application, media, package, reversible-control, and connection-lifecycle paths have also been accepted against a configured physical Android device through both the primary local ADB server and an isolated secondary server using `AdbServerMode.Remote`. The OCI image build and authenticated MCP topology have been accepted with rootless Podman. Cross-host ADB-server acceptance, exact Docker Engine execution, and public release remain outstanding.
 
 ## Included MCP tools
 
@@ -179,6 +179,8 @@ The VS Code build, test, and `coreclr` launch configurations are repository-loca
 After publishing the Windows executable, `.\scripts\smoke-test.ps1` starts it hidden, checks `/healthz`, performs an MCP initialization request, and stops the exact process it started.
 
 For a configured ignored local device alias, `.\scripts\device-acceptance.ps1 -DeviceAlias <alias>` runs the structured read-only MCP acceptance suite without printing raw diagnostic or package data. Add `-IncludeConnectionLifecycle` only during an authorized maintenance window; it exercises connect, reconnect, disconnect, restores the connection, and fails unless final health is online and authorized. Add `-IncludeControls -ControlAppAlias <allowlisted-alias>` only when reversible wake, Home, launch/stop, media Pause/Play, and volume Down/Up tests are authorized. Add `-IncludePackageAdministration -ArtifactAlias <disposable-alias>` only for a checksum-pinned disposable APK whose install and removal are both authorized. The harness starts and stops an exact local service process and passes sensitive local configuration only through its temporary child-process environment.
+
+During an authorized maintenance window on Windows, `.\scripts\remote-adb-acceptance.ps1 -DeviceAlias <alias>` starts an isolated loopback-only secondary ADB server, connects the configured device without printing its selector, and runs the full read-only and connection-lifecycle suite through `AdbServerMode.Remote`. It verifies that the secondary listener is restricted to loopback, leaves the primary ADB server untouched, restores the secondary connection before completion, stops the exact secondary server, and deletes its temporary output files. This validates the remote ADB protocol path without claiming cross-host network acceptance.
 
 ## Publish and host
 

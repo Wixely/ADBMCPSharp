@@ -4,6 +4,12 @@ param(
     [string]$DeviceAlias,
     [string]$Executable,
     [string]$LocalConfig,
+    [string]$AdbServerAlias,
+    [ValidateSet('Local', 'Remote')]
+    [string]$AdbServerMode,
+    [string]$AdbServerHost,
+    [ValidateRange(1, 65535)]
+    [int]$AdbServerPort = 5037,
     [switch]$IncludeControls,
     [string]$ControlAppAlias = 'settings',
     [switch]$IncludeConnectionLifecycle,
@@ -27,6 +33,10 @@ $deviceProperty = $configuration.Adb.Devices.PSObject.Properties |
     Select-Object -First 1
 if ($null -eq $deviceProperty) { throw "Unknown local device alias '$DeviceAlias'." }
 $device = $deviceProperty.Value
+$effectiveServerAlias = if ([string]::IsNullOrWhiteSpace($AdbServerAlias)) { [string]$device.Server } else { $AdbServerAlias }
+if ($AdbServerMode -eq 'Remote' -and [string]::IsNullOrWhiteSpace($AdbServerHost)) {
+    throw 'A remote ADB server override requires AdbServerHost.'
+}
 $diagnostics = @('Battery', 'Memory', 'Storage', 'CpuLoad', 'Runtime', 'Display', 'Security')
 $environmentNames = New-Object System.Collections.Generic.List[string]
 
@@ -46,7 +56,7 @@ function Get-SseJson($Response) {
 $serviceProcess = $null
 try {
     Set-AcceptanceEnvironment 'ADBMCP_Adb__ExecutablePath' ([string]$configuration.Adb.ExecutablePath)
-    Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__Server') ([string]$device.Server)
+    Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__Server') $effectiveServerAlias
     Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__Selector') ([string]$device.Selector)
     Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__DisplayName') ([string]$device.DisplayName)
     Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__Capabilities__AllowInstalledAppListing') 'true'
@@ -56,6 +66,14 @@ try {
     Set-AcceptanceEnvironment 'ADBMCP_Policy__DiagnosticsEnabled' 'true'
     Set-AcceptanceEnvironment 'ADBMCP_Policy__MediaInspectionEnabled' 'true'
     Set-AcceptanceEnvironment 'ADBMCP_Policy__DiscoveryEnabled' ([string]$configuration.Policy.DiscoveryEnabled)
+    if (-not [string]::IsNullOrWhiteSpace($AdbServerMode)) {
+        $serverPrefix = 'ADBMCP_Adb__Servers__' + $effectiveServerAlias + '__'
+        Set-AcceptanceEnvironment ($serverPrefix + 'Mode') $AdbServerMode
+        Set-AcceptanceEnvironment ($serverPrefix + 'Port') ([string]$AdbServerPort)
+        if ($AdbServerMode -eq 'Remote') {
+            Set-AcceptanceEnvironment ($serverPrefix + 'Host') $AdbServerHost
+        }
+    }
     for ($index = 0; $index -lt $diagnostics.Count; $index++) {
         Set-AcceptanceEnvironment ('ADBMCP_Policy__AllowedDiagnostics__' + $index) $diagnostics[$index]
     }
@@ -186,7 +204,7 @@ try {
     $requestId++
     $servers = Invoke-AcceptanceTool $requestId 'adb_list_adb_servers' @{}
     $requestId++
-    $discovery = Invoke-AcceptanceTool $requestId 'adb_discover_devices' @{ serverAlias = [string]$device.Server }
+    $discovery = Invoke-AcceptanceTool $requestId 'adb_discover_devices' @{ serverAlias = $effectiveServerAlias }
     $requestId++
 
     [pscustomobject]@{
