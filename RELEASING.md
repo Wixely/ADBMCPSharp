@@ -28,6 +28,6 @@ No public release has been made yet. Publishing requires an explicit user instru
 
 ## Known first-release gates
 
-- Observe both container smoke harnesses passing on Docker Engine; local coverage currently uses rootless Podman.
-- Exercise an installed Windows Service and a native Linux systemd unit on representative hosts.
-- Complete the final outgoing-history and packaged-binary privacy review after the public remote exists and immediately before push.
+- Exercise `scripts\windows-service-acceptance.ps1` from an elevated session on a representative Windows host.
+- Repeat the accepted Ubuntu 24.04 WSL2 systemd lifecycle on a representative non-WSL Linux host.
+- Decide whether native-host acceptance blocks the first tag, then repeat the outgoing-history and packaged-binary privacy review immediately before publishing it.

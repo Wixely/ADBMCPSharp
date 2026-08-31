@@ -47,6 +47,7 @@ Implemented:
 - Guarded configured-device connect, reconnect, and disconnect operations with independent global/device gates, per-call confirmation, retries, redacted audit data, and final-state verification.
 - OCI container deployment with non-root service and ADB-server containers, private networking, API-key authentication, persistent ADB trust keys, health checks, and Docker-compatible smoke harnesses.
 - Self-contained single-file Windows/Linux publishing, reproducible versioned archives, SHA-256 manifests, release documentation, repository-local VS Code debugging, CI, MIT licensing, and third-party notices.
+- Guarded native-host acceptance harnesses for an ephemeral authenticated Windows Service and an isolated systemd-enabled WSL2 installation.
 - 98 unit/contract tests covering parsing, policy gates, configuration safety, structured status, postcondition verification, transport contracts, and forbidden tool inputs.
 
 Accepted on the primary physical target:
@@ -58,6 +59,7 @@ Accepted on the primary physical target:
 - Rootless Podman execution of the OCI image and both container topology paths.
 - Exact Docker Engine execution of both container smoke paths in public GitHub Actions.
 - Public Windows/Linux build, test, package, and Docker CI on the reviewed `main` history.
+- Packaged Linux systemd operation on Ubuntu 24.04 WSL2, including hardening, authenticated MCP health/catalogue, rejection without credentials, restart, automatic failure recovery, stop, and clean removal.
 
 Not yet verified or claimed:
 
@@ -65,7 +67,8 @@ Not yet verified or claimed:
 - APK install/uninstall acceptance against a disposable target; no real package changes have been performed during development.
 - Break-glass arbitrary-command acceptance has not been performed against a real device because commands may be destructive and return sensitive output.
 - Local USB/emulator operation; current physical acceptance uses an operator-established network ADB connection.
-- Installed Windows Service and native Linux systemd operation on representative hosts.
+- Installed Windows Service operation; the guarded harness is ready but this session is not elevated.
+- Native Linux systemd operation on a representative non-WSL host; WSL2 systemd acceptance is complete.
 - NativeAOT; reflection-based MCP tool discovery currently uses the normal .NET runtime.
 - GitHub release publication; no tag or release has been created yet.
 
@@ -75,7 +78,7 @@ Not yet verified or claimed:
 - Extend verified coverage to USB/emulator transports, another Android version, and a native cross-host Linux ADB server.
 - Review licensing and redistribution conditions for Android platform-tools before bundling any executable. Prefer an external configured dependency unless redistribution is clearly permitted and operationally justified.
 - Measure command cancellation, timeout behavior, output encodings, daemon startup behavior, concurrent device operations, and recovery after device/server disconnect.
-- Verify installed Windows Service and native Linux systemd behavior.
+- Verify the packaged Windows Service from an elevated session and repeat systemd acceptance on a non-WSL Linux host.
 - Determine which device facts are stable and safe enough to expose without leaking identifiers or personal data.
 
 ### Transport decision
@@ -189,7 +192,9 @@ Use JSON, environment variables, and command-line configuration consistently wit
 - [x] Add separately gated media inspection/control, volume control, checksum-pinned APK installation, and explicitly allowlisted app removal. - Owner: Agent; completed 2026-08-30
 - [x] Add a curated, allowlisted read-only diagnostic catalog with structured output and no raw diagnostic response. - Owner: Agent; completed 2026-08-30
 - [ ] Verify postcondition reporting on a second target or disposable emulator; primary-target reporting is accepted. - Owner: Agent; review 2026-09-30
-- [ ] Run native Linux remote-server and systemd acceptance; Windows local/isolated-remote and Linux containerized-remote paths are accepted. - Owner: User / Agent; review 2026-09-30
+- [x] Run packaged systemd acceptance on Ubuntu 24.04 WSL2, including hardening, lifecycle, MCP smoke, recovery, and cleanup. - Owner: Agent; completed 2026-08-31
+- [ ] Repeat systemd acceptance on a representative non-WSL Linux host and exercise a native cross-host remote ADB server. - Owner: User / Agent; review 2026-09-30
+- [ ] Run the guarded Windows Service acceptance harness from an elevated session; interactive and packaged Windows paths are accepted. - Owner: User / Agent; review 2026-09-30
 - [ ] Verify mDNS discovery and redaction with legacy TCP ADB and modern wireless debugging on both a local and remote ADB server. - Owner: User / Agent; review 2026-09-30
 - [x] Define and test container ADB networking, non-root operation, authentication, server replacement, and key persistence under rootless Podman. - Owner: Agent; completed 2026-08-31
 - [x] Observe both container smoke harnesses on exact Docker Engine through GitHub Actions. - Owner: Agent; completed 2026-08-31
@@ -201,4 +206,4 @@ Use JSON, environment variables, and command-line configuration consistently wit
 
 ## Recommended next action
 
-Install and exercise the packaged service as a native Windows Service and under systemd on a representative Linux host, then record startup, restart, shutdown, authentication, and recovery results. Owner: User / Agent; review 2026-09-30.
+Run `scripts\windows-service-acceptance.ps1` from an elevated Administrator PowerShell session and record its authenticated startup, restart, failure-recovery, and shutdown result. Then repeat the accepted systemd lifecycle on a representative non-WSL Linux host. Owner: User / Agent; review 2026-09-30.

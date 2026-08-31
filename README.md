@@ -206,9 +206,9 @@ Create versioned release archives and a SHA-256 manifest with:
 
 The default creates `win-x64` and `linux-x64` packages beneath `artifacts/release`. Linux packaging on Windows uses WSL so the executable and service files have deterministic Unix ownership and modes. See [`RELEASING.md`](RELEASING.md) for the candidate checklist and outstanding first-release gates, and [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
-Windows builds support interactive execution and Windows Service hosting. Install a published executable with your normal service-management tooling, set its working/configuration directory permissions, and supply secrets in a protected service environment rather than command-line arguments.
+Windows builds support interactive execution and Windows Service hosting. Install a published executable with your normal service-management tooling, set its working/configuration directory permissions, and supply secrets in a protected service environment rather than command-line arguments. From an elevated Windows PowerShell 5.1 session in a repository checkout, `scripts\windows-service-acceptance.ps1` installs an isolated temporary service, stores an ephemeral API key in the service environment, verifies authenticated MCP startup, restart, failure recovery, and shutdown, then deletes the service and its temporary files. It refuses to replace an existing service or use an occupied port.
 
-Linux builds run interactively or with the example [`adbmcp.service`](deploy/systemd/adbmcp.service). The unit assumes `/opt/adbmcp`, a dedicated `adbmcp` account, and `/etc/adbmcp/environment`; adjust ownership and paths for the target host.
+Linux builds run interactively or with the example [`adbmcp.service`](deploy/systemd/adbmcp.service). The unit assumes `/opt/adbmcp`, a dedicated `adbmcp` account, and `/etc/adbmcp/environment`; adjust ownership and paths for the target host. From a repository checkout with a clean systemd-enabled WSL2 distribution, `scripts\systemd-wsl-acceptance.ps1 -Distribution <name>` installs the packaged Linux artifact, verifies unit hardening plus authenticated startup, restart, failure recovery, shutdown, health, and the MCP catalogue, then removes only the account, unit, and directories it created. It refuses to overwrite an existing installation.
 
 Build and smoke-test the Linux container from a Docker-capable host:
 
@@ -219,7 +219,7 @@ Build and smoke-test the Linux container from a Docker-capable host:
 
 The image runs as the non-root .NET `app` account, binds container port `8080`, installs Ubuntu Noble's packaged `adb`, and requires an API key whenever exposed beyond loopback. The basic smoke harness creates an ephemeral API key and uniquely named container, verifies health plus the complete MCP tool catalogue over a loopback-only published port, and removes the container. The remote-topology harness adds a non-root ADB-server sidecar, private network, configured remote-mode device profile, persistent ADB-key volume, server replacement, and an unavailable-device health probe without requiring a physical device. Both are configured in CI. Site-specific configuration must be supplied at runtime; `.dockerignore` prevents local configuration and build artifacts from entering the build context. Persist `/var/lib/adbmcp/adb` when container-local ADB trust is required and `/app/logs` when file logs must survive replacement.
 
-NativeAOT is intentionally disabled because MCP assembly tool discovery uses reflection. The image and physical two-container remote ADB topology have passed under rootless Podman; both smoke harnesses are configured as Docker Engine CI jobs, but exact Docker Engine execution remains to be observed.
+NativeAOT is intentionally disabled because MCP assembly tool discovery uses reflection. The image and physical two-container remote ADB topology have passed under rootless Podman, and both smoke harnesses pass on Docker Engine in public GitHub Actions.
 
 ## Security model
 
