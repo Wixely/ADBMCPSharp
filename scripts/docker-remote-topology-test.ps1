@@ -14,12 +14,14 @@ if ($null -eq (Get-Command docker -ErrorAction SilentlyContinue)) {
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $suffix = [Guid]::NewGuid().ToString('N')
 $networkName = 'adbmcp-topology-' + $suffix
+$ingressNetworkName = 'adbmcp-ingress-' + $suffix
 $keyVolumeName = 'adbmcp-keys-' + $suffix
 $adbContainerName = 'adbmcp-adb-' + $suffix
 $serviceContainerName = 'adbmcp-service-' + $suffix
 $apiKey = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
 $environmentFile = [IO.Path]::GetTempFileName()
 $networkCreated = $false
+$ingressNetworkCreated = $false
 $volumeCreated = $false
 $adbStarted = $false
 $serviceStarted = $false
@@ -39,6 +41,9 @@ try {
     & docker network create --internal $networkName | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Private Docker network creation failed.' }
     $networkCreated = $true
+    & docker network create $ingressNetworkName | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Ingress Docker network creation failed.' }
+    $ingressNetworkCreated = $true
     & docker volume create $keyVolumeName | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'ADB key volume creation failed.' }
     $volumeCreated = $true
@@ -75,12 +80,14 @@ try {
     )
     [IO.File]::WriteAllLines($environmentFile, $settings)
     & docker run --detach --rm --name $serviceContainerName `
-        --network $networkName `
+        --network $ingressNetworkName `
         --publish ('127.0.0.1:' + $Port + ':8080') `
         --env-file $environmentFile `
         $ImageName | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'ADBMCPSharp topology container start failed.' }
     $serviceStarted = $true
+    & docker network connect $networkName $serviceContainerName
+    if ($LASTEXITCODE -ne 0) { throw 'ADBMCPSharp could not join the private ADB network.' }
 
     & (Join-Path $PSScriptRoot 'smoke-test.ps1') -SkipProcessStart `
         -BaseUri ('http://localhost:' + $Port) -ApiKey $apiKey
@@ -146,6 +153,7 @@ finally {
     if ($serviceStarted) { & docker stop --time 10 $serviceContainerName | Out-Null }
     if ($adbStarted) { & docker stop --time 10 $adbContainerName | Out-Null }
     if ($networkCreated) { & docker network rm $networkName | Out-Null }
+    if ($ingressNetworkCreated) { & docker network rm $ingressNetworkName | Out-Null }
     if ($volumeCreated) { & docker volume rm $keyVolumeName | Out-Null }
     Remove-Item -LiteralPath $environmentFile -Force -ErrorAction SilentlyContinue
 }
