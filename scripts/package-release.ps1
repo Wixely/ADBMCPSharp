@@ -84,6 +84,9 @@ foreach ($runtimeIdentifier in $Runtime) {
             foreach ($required in @('ADBMCPSharp.exe', 'ADBMCPSharp.json', 'LICENSE', 'README.md', 'SECURITY.md', 'THIRD-PARTY-NOTICES.md')) {
                 if ($entries -notcontains "$packageName/$required") { throw "$archive is missing $required." }
             }
+            foreach ($forbidden in @('aspnetcorev2_inprocess.dll')) {
+                if ($entries -contains "$packageName/$forbidden") { throw "$archive unexpectedly contains $forbidden." }
+            }
         }
         finally {
             $zip.Dispose()

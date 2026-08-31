@@ -6,6 +6,7 @@
     <AssemblyName>ADBMCPSharp</AssemblyName>
     <PublishAot>false</PublishAot>
     <PublishTrimmed>false</PublishTrimmed>
+    <PublishIISAssets>false</PublishIISAssets>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -26,4 +27,15 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
+  <Target Name="ExcludeIISPublishAssets"
+          Condition="'$(PublishIISAssets)' == 'false'"
+          AfterTargets="ComputeResolvedFilesToPublishList"
+          BeforeTargets="CopyFilesToPublishDirectory">
+    <ItemGroup>
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+                             Condition="'%(Filename)%(Extension)' == 'aspnetcorev2_inprocess.dll'">
+        <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 </Project>

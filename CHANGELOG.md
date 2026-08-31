@@ -4,6 +4,11 @@ All notable changes will be recorded here. The project follows Semantic Versioni
 
 ## Unreleased
 
+## 0.1.1 - 2026-08-31
+
+- Removed the unnecessary IIS in-process hosting module from Windows release archives.
+- Added a packaging regression check that rejects `aspnetcorev2_inprocess.dll`.
+
 ## 0.1.0 - 2026-08-31
 
 - Added a controlled .NET 10 MCP service for local and remote ADB servers.

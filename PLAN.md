@@ -203,6 +203,7 @@ Use JSON, environment variables, and command-line configuration consistently wit
 - [x] Authenticate GitHub, create public `Wixely/ADBMCPSharp`, push reviewed `main`, and observe CI. - Owner: User / Agent; completed 2026-08-31
 - [x] Upgrade to MCP SDK 2.2 with explicit hybrid session handling and smoke coverage for both legacy stateful and 2026-07-28 stateless clients. - Owner: Agent; completed 2026-08-31
 - [x] Publish the reviewed `v0.1.0` GitHub release with Windows/Linux archives and SHA-256 checksums; native Windows Service and non-WSL systemd acceptance remain follow-ups. - Owner: User / Agent; completed 2026-08-31
+- [x] Exclude IIS in-process hosting assets from release publishing and add archive regression coverage for `aspnetcorev2_inprocess.dll`. - Owner: Agent; completed 2026-08-31
 - [ ] Add MCPHub integration as a separately verified milestone after the first public release. - Owner: Agent
 
 ## Recommended next action
