@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.AspNetCore;
 using Serilog;
 
 // AppContext points at the application directory for both framework-dependent
@@ -82,7 +83,14 @@ try
                 AutoReplenishment = true,
             }));
     });
-    builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+    builder.Services.AddMcpServer()
+        .WithHttpTransport(options =>
+        {
+            // Preserve sessions for initialize-era clients while serving the
+            // current protocol statelessly on the same endpoint.
+            options.SessionMode = HttpServerSessionMode.StatefulForInitializeClients;
+        })
+        .WithToolsFromAssembly();
 
     builder.WebHost.ConfigureKestrel(kestrel =>
     {

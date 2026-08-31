@@ -67,6 +67,41 @@ try {
     }
     Write-Output ('MCP_TOOLS=' + $expectedTools.Count)
 
+    $modernHeaders = @{
+        Accept = 'application/json, text/event-stream'
+        'MCP-Protocol-Version' = '2026-07-28'
+        'MCP-Method' = 'server/discover'
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ApiKey)) { $modernHeaders.Authorization = 'Bearer ' + $ApiKey }
+    $modernMetadata = @{
+        'io.modelcontextprotocol/protocolVersion' = '2026-07-28'
+        'io.modelcontextprotocol/clientInfo' = @{ name = 'smoke-test'; version = '1.0' }
+        'io.modelcontextprotocol/clientCapabilities' = @{}
+    }
+    $discoverBody = @{
+        jsonrpc = '2.0'; id = 'discover-1'; method = 'server/discover'
+        params = @{ _meta = $modernMetadata }
+    } | ConvertTo-Json -Depth 6 -Compress
+    $discoverResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
+        -Headers $modernHeaders -ContentType 'application/json' -Body $discoverBody -TimeoutSec 10
+    if ($discoverResponse.Content -notmatch '2026-07-28') { throw 'Modern MCP discovery did not advertise protocol 2026-07-28.' }
+    $discoverSessionId = [string]@($discoverResponse.Headers['Mcp-Session-Id'])[0]
+    if (-not [string]::IsNullOrWhiteSpace($discoverSessionId)) { throw 'Modern MCP discovery unexpectedly created a session.' }
+
+    $modernHeaders['MCP-Method'] = 'tools/list'
+    $modernToolsBody = @{
+        jsonrpc = '2.0'; id = 'tools-1'; method = 'tools/list'
+        params = @{ _meta = $modernMetadata }
+    } | ConvertTo-Json -Depth 6 -Compress
+    $modernToolsResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUri + '/mcp') -Method Post `
+        -Headers $modernHeaders -ContentType 'application/json' -Body $modernToolsBody -TimeoutSec 10
+    foreach ($tool in $expectedTools) {
+        if ($modernToolsResponse.Content -notmatch [Regex]::Escape($tool)) { throw "Modern MCP tool catalogue is missing $tool." }
+    }
+    $modernToolsSessionId = [string]@($modernToolsResponse.Headers['Mcp-Session-Id'])[0]
+    if (-not [string]::IsNullOrWhiteSpace($modernToolsSessionId)) { throw 'Modern MCP tools request unexpectedly created a session.' }
+    Write-Output ('MCP_MODERN_TOOLS=' + $expectedTools.Count)
+
     if (-not [string]::IsNullOrWhiteSpace($DiscoveryServerAlias)) {
         $serverListBody = @{
             jsonrpc = '2.0'
