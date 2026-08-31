@@ -1,6 +1,6 @@
 # Release process
 
-No public release has been made yet. Publishing requires an explicit user instruction and a configured `Wixely/ADBMCPSharp` GitHub remote.
+Publishing requires an explicit user instruction and a configured `Wixely/ADBMCPSharp` GitHub remote. Version `0.1.0` is the first public release.
 
 ## Prepare a candidate
 
@@ -26,8 +26,7 @@ No public release has been made yet. Publishing requires an explicit user instru
 3. Create an annotated `v<version>` tag, re-check that the tag points to the reviewed commit, and publish only after explicit authorization.
 4. Attach both archives and `SHA256SUMS.txt` to the release. Verify downloaded assets again before announcing the release.
 
-## Known first-release gates
+## Post-release acceptance follow-ups
 
 - Exercise `scripts\windows-service-acceptance.ps1` from an elevated session on a representative Windows host.
 - Repeat the accepted Ubuntu 24.04 WSL2 systemd lifecycle on a representative non-WSL Linux host.
-- Decide whether native-host acceptance blocks the first tag, then repeat the outgoing-history and packaged-binary privacy review immediately before publishing it.

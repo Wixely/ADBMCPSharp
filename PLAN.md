@@ -72,7 +72,6 @@ Not yet verified or claimed:
 - Installed Windows Service operation; the guarded harness is ready but this session is not elevated.
 - Native Linux systemd operation on a representative non-WSL host; WSL2 systemd acceptance is complete.
 - NativeAOT; reflection-based MCP tool discovery currently uses the normal .NET runtime.
-- GitHub release publication; no tag or release has been created yet.
 
 ## Investigation work
 
@@ -179,7 +178,6 @@ Use JSON, environment variables, and command-line configuration consistently wit
 
 - Should screenshots enter a later milestone, and if so, may they be returned only in memory or also saved to a confined directory?
 - Is one active operation per device sufficient long term, or should safe read operations gain limited concurrency?
-- Should a GitHub release be created immediately after CI succeeds, or should native Windows Service and systemd acceptance block the first tag?
 - Which MCPHub catalogue and managed-service integration milestone should follow the first public release?
 - Which TLS-terminating reverse proxy or private overlay will protect non-loopback MCP traffic in the target deployment?
 
@@ -204,6 +202,7 @@ Use JSON, environment variables, and command-line configuration consistently wit
 - [x] Complete the pre-publication reachable-history, metadata, path, credential, device-data, and binary privacy review. - Owner: Agent; completed 2026-08-31
 - [x] Authenticate GitHub, create public `Wixely/ADBMCPSharp`, push reviewed `main`, and observe CI. - Owner: User / Agent; completed 2026-08-31
 - [x] Upgrade to MCP SDK 2.2 with explicit hybrid session handling and smoke coverage for both legacy stateful and 2026-07-28 stateless clients. - Owner: Agent; completed 2026-08-31
+- [x] Publish the reviewed `v0.1.0` GitHub release with Windows/Linux archives and SHA-256 checksums; native Windows Service and non-WSL systemd acceptance remain follow-ups. - Owner: User / Agent; completed 2026-08-31
 - [ ] Add MCPHub integration as a separately verified milestone after the first public release. - Owner: Agent
 
 ## Recommended next action
