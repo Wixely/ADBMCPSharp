@@ -91,9 +91,12 @@ try {
     }} | ConvertTo-Json -Depth 6 -Compress
     $response = Invoke-WebRequest -UseBasicParsing -Uri ('http://localhost:' + $Port + '/mcp') `
         -Method Post -Headers $headers -ContentType 'application/json' -Body $initialize
+    $sessionIdValues = @($response.Headers['Mcp-Session-Id'])
+    $sessionId = [string]$sessionIdValues[0]
+    if ([string]::IsNullOrWhiteSpace($sessionId)) { throw 'MCP initialize response did not include a session ID.' }
     $session = @{
         Accept='application/json, text/event-stream'; Authorization=('Bearer ' + $apiKey)
-        'Mcp-Session-Id'=$response.Headers['Mcp-Session-Id']; 'MCP-Protocol-Version'='2025-06-18'
+        'Mcp-Session-Id'=$sessionId; 'MCP-Protocol-Version'='2025-06-18'
     }
     $null = Invoke-WebRequest -UseBasicParsing -Uri ('http://localhost:' + $Port + '/mcp') `
         -Method Post -Headers $session -ContentType 'application/json' `

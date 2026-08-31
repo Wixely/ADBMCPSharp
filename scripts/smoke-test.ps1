@@ -36,7 +36,8 @@ try {
     Write-Output ('MCP_CONTENT_TYPE=' + $response.Headers['Content-Type'])
     if ($response.Content -notmatch 'ADBMCPSharp') { throw 'MCP initialize response did not identify the server.' }
 
-    $sessionId = $response.Headers['Mcp-Session-Id']
+    $sessionIdValues = @($response.Headers['Mcp-Session-Id'])
+    $sessionId = [string]$sessionIdValues[0]
     if ([string]::IsNullOrWhiteSpace($sessionId)) { throw 'MCP initialize response did not include a session ID.' }
     $sessionHeaders = @{
         Accept = 'application/json, text/event-stream'
