@@ -67,8 +67,8 @@ try {
     if (-not $adbReady) { throw 'ADB server container did not become ready.' }
     $fingerprintBefore = @(& docker exec $adbContainerName sha256sum /var/lib/adbmcp/adb/adbkey)[0].Split(' ')[0]
 
-    $settings = @(
-        'Server__ApiKey=' + $apiKey,
+    $settings = [string[]]@(
+        ('Server__ApiKey=' + $apiKey),
         'Adb__Servers__topology__Mode=Remote',
         'Adb__Servers__topology__Host=adb-server',
         'Adb__Servers__topology__Port=5037',
@@ -78,6 +78,9 @@ try {
         'Adb__Devices__topology-device__Capabilities__Enabled=true',
         'Policy__InspectionEnabled=true'
     )
+    if ($settings.Count -ne 9 -or $settings[0] -ne ('Server__ApiKey=' + $apiKey)) {
+        throw 'Docker environment settings were not constructed as separate entries.'
+    }
     [IO.File]::WriteAllLines($environmentFile, $settings)
     & docker run --detach --rm --name $serviceContainerName `
         --network $ingressNetworkName `
