@@ -31,7 +31,7 @@ The first usable outcome has been accepted against the primary physical target t
 
 Implemented:
 
-- .NET 10 Streamable HTTP MCP host with loopback-default binding, API-key enforcement for network binding, per-client rate limiting, health endpoint, Serilog, Windows Service support, and systemd example.
+- .NET 10 Streamable HTTP MCP host on MCP SDK 2.2 with hybrid legacy-session/current-stateless protocol handling, loopback-default binding, API-key enforcement for network binding, per-client rate limiting, health endpoint, Serilog, Windows Service support, and systemd example.
 - External `adb` process adapter using shell-free argument lists, bounded output, cancellation, timeouts, and classified offline/unauthorized/unavailable failures.
 - Named local/remote ADB servers, named devices, server-side selectors, strict package/alias validation, and no raw selectors or server coordinates in tool results.
 - Separately gated passive ADB mDNS discovery with bounded results, opaque short-lived handles, and redaction of service names, addresses, ports, and serial-derived identifiers.
@@ -179,7 +179,6 @@ Use JSON, environment variables, and command-line configuration consistently wit
 
 - Should screenshots enter a later milestone, and if so, may they be returned only in memory or also saved to a confined directory?
 - Is one active operation per device sufficient long term, or should safe read operations gain limited concurrency?
-- When should the pinned MCP package receive its separately tested major-version upgrade?
 - Should a GitHub release be created immediately after CI succeeds, or should native Windows Service and systemd acceptance block the first tag?
 - Which MCPHub catalogue and managed-service integration milestone should follow the first public release?
 - Which TLS-terminating reverse proxy or private overlay will protect non-loopback MCP traffic in the target deployment?
@@ -204,6 +203,7 @@ Use JSON, environment variables, and command-line configuration consistently wit
 - [x] Add reproducible `0.1.0` Windows/Linux archives, checksums, dependency audits, release documentation, and packaged Windows smoke coverage. - Owner: Agent; completed 2026-08-31
 - [x] Complete the pre-publication reachable-history, metadata, path, credential, device-data, and binary privacy review. - Owner: Agent; completed 2026-08-31
 - [x] Authenticate GitHub, create public `Wixely/ADBMCPSharp`, push reviewed `main`, and observe CI. - Owner: User / Agent; completed 2026-08-31
+- [x] Upgrade to MCP SDK 2.2 with explicit hybrid session handling and smoke coverage for both legacy stateful and 2026-07-28 stateless clients. - Owner: Agent; completed 2026-08-31
 - [ ] Add MCPHub integration as a separately verified milestone after the first public release. - Owner: Agent
 
 ## Recommended next action
