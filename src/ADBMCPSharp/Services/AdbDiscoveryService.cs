@@ -60,15 +60,27 @@ public sealed class AdbDiscoveryService(
 
     private static string CreateOpaqueHandle() => Convert.ToHexString(RandomNumberGenerator.GetBytes(12)).ToLowerInvariant();
 
-    private static DiscoveryResult TransportFailure(string alias, AdbExecutionResult result) =>
-        Failure(alias, result.FailureKind switch
+    private static DiscoveryResult TransportFailure(string alias, AdbExecutionResult result)
+    {
+        var state = result.FailureKind switch
         {
             AdbFailureKind.TimedOut => OperationState.TimedOut,
             AdbFailureKind.Offline => OperationState.Offline,
             AdbFailureKind.Unauthorized => OperationState.Unauthorized,
             AdbFailureKind.Unavailable => OperationState.Indeterminate,
             _ => OperationState.Failed,
-        }, result.Message ?? "ADB mDNS discovery failed.");
+        };
+        var message = result.FailureKind switch
+        {
+            AdbFailureKind.TimedOut => "ADB mDNS discovery timed out.",
+            AdbFailureKind.Offline => "The configured ADB server is offline.",
+            AdbFailureKind.Unauthorized => "The configured ADB server rejected the discovery request.",
+            AdbFailureKind.Unavailable => "ADB mDNS discovery is unavailable on the configured server.",
+            AdbFailureKind.Cancelled => "ADB mDNS discovery was cancelled.",
+            _ => "ADB mDNS discovery failed.",
+        };
+        return Failure(alias, state, message);
+    }
 
     private static DiscoveryResult Failure(string alias, OperationState state, string message) =>
         new(alias, state, false, 0, [], message);

@@ -49,7 +49,7 @@ Implemented:
 - Self-contained single-file Windows/Linux publishing, reproducible versioned archives, SHA-256 manifests, release documentation, repository-local VS Code debugging, CI, MIT licensing, and third-party notices.
 - Guarded native-host acceptance harnesses for an ephemeral authenticated Windows Service and an isolated systemd-enabled WSL2 installation.
 - A bounded single-application acceptance harness for closed launch modes and optional independently gated stop verification, plus CI parsing of every repository PowerShell script on Windows PowerShell 5.1.
-- 98 unit/contract tests covering parsing, policy gates, configuration safety, structured status, postcondition verification, transport contracts, and forbidden tool inputs.
+- 112 unit/contract tests covering parsing, policy gates, configuration safety, structured status, postcondition verification, transport contracts, discovery redaction, and forbidden tool inputs.
 
 Accepted on the primary physical target:
 
