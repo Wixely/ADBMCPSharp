@@ -60,7 +60,7 @@ Accepted on the primary physical target:
 - Rootless Podman execution of the OCI image and both container topology paths.
 - Exact Docker Engine execution of both container smoke paths in public GitHub Actions.
 - Public Windows/Linux build, test, package, and Docker CI on the reviewed `main` history.
-- Packaged Linux systemd operation on Ubuntu 24.04 WSL2, including hardening, authenticated MCP health/catalogue, rejection without credentials, restart, automatic failure recovery, stop, and clean removal.
+- Packaged Linux systemd operation on Ubuntu 24.04 WSL2, including hardening, authenticated legacy-stateful and current-stateless MCP health/catalogue, rejection without credentials, restart, automatic failure recovery, stop, and clean removal; reaccepted after the MCP SDK 2.2 migration.
 - Single-application acceptance on the primary target through the reusable `WakeAndForeground` path, including online/authorized preflight and observed installed, running, and foreground postconditions.
 
 Not yet verified or claimed:
@@ -193,7 +193,7 @@ Use JSON, environment variables, and command-line configuration consistently wit
 - [x] Add separately gated media inspection/control, volume control, checksum-pinned APK installation, and explicitly allowlisted app removal. - Owner: Agent; completed 2026-08-30
 - [x] Add a curated, allowlisted read-only diagnostic catalog with structured output and no raw diagnostic response. - Owner: Agent; completed 2026-08-30
 - [ ] Verify postcondition reporting on a second target or disposable emulator; primary-target reporting is accepted. - Owner: Agent; review 2026-09-30
-- [x] Run packaged systemd acceptance on Ubuntu 24.04 WSL2, including hardening, lifecycle, MCP smoke, recovery, and cleanup. - Owner: Agent; completed 2026-08-31
+- [x] Run packaged systemd acceptance on Ubuntu 24.04 WSL2, including hardening, lifecycle, dual-protocol MCP smoke, recovery, and cleanup; rerun after the MCP SDK 2.2 migration. - Owner: Agent; completed 2026-08-31
 - [ ] Repeat systemd acceptance on a representative non-WSL Linux host and exercise a native cross-host remote ADB server. - Owner: User / Agent; review 2026-09-30
 - [ ] Run the guarded Windows Service acceptance harness from an elevated session; interactive and packaged Windows paths are accepted. - Owner: User / Agent; review 2026-09-30
 - [ ] Verify mDNS discovery and redaction with legacy TCP ADB and modern wireless debugging on both a local and remote ADB server. - Owner: User / Agent; review 2026-09-30
