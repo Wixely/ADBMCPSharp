@@ -1,13 +1,13 @@
 # ADBMCPSharp delivery plan
 
-- Status: Release candidate implemented and accepted on the primary physical target; public GitHub creation is blocked on authentication
+- Status: Release candidate implemented, accepted on the primary physical target, published to public GitHub, and passing CI
 - Created: 2026-08-30
 - Last updated: 2026-08-31
 - Owner: Wixely / Agent
 - Target stack: C# and .NET 10
 - Intended family: Wixely MCPSharp
-- Intended host/license: Public GitHub / MIT; remote not yet created
-- Source-control handling: keep this working plan uncommitted unless the user explicitly changes that instruction
+- Intended host/license: Public GitHub at `Wixely/ADBMCPSharp` / MIT
+- Source-control handling: include this working plan in the repository and keep it current
 
 ## Product boundary
 
@@ -54,8 +54,10 @@ Accepted on the primary physical target:
 - Read-only status, application inventory, seven curated diagnostics, media information, and authorization/connection health.
 - Wake, Home navigation, application launch/foreground/stop, media Pause/Play, and volume Down/Up with state restoration where applicable.
 - Connection lifecycle through local and isolated remote ADB-server modes.
-- Two-container remote ADB operation with both containers non-root, a private bridge network, authenticated MCP, persistent ADB keys, and successful ADB-server replacement.
+- Two-container remote ADB operation with both containers non-root, isolated private ADB networking, loopback-only ingress, authenticated MCP, persistent ADB keys, and successful ADB-server replacement.
 - Rootless Podman execution of the OCI image and both container topology paths.
+- Exact Docker Engine execution of both container smoke paths in public GitHub Actions.
+- Public Windows/Linux build, test, package, and Docker CI on the reviewed `main` history.
 
 Not yet verified or claimed:
 
@@ -64,9 +66,8 @@ Not yet verified or claimed:
 - Break-glass arbitrary-command acceptance has not been performed against a real device because commands may be destructive and return sensitive output.
 - Local USB/emulator operation; current physical acceptance uses an operator-established network ADB connection.
 - Installed Windows Service and native Linux systemd operation on representative hosts.
-- Exact Docker Engine execution; the compatible smoke harnesses have passed under rootless Podman and are configured in GitHub Actions.
 - NativeAOT; reflection-based MCP tool discovery currently uses the normal .NET runtime.
-- Public GitHub CI and release publication; `Wixely/ADBMCPSharp` does not exist yet and the available Git/browser sessions are not authenticated.
+- GitHub release publication; no tag or release has been created yet.
 
 ## Investigation work
 
@@ -74,7 +75,7 @@ Not yet verified or claimed:
 - Extend verified coverage to USB/emulator transports, another Android version, and a native cross-host Linux ADB server.
 - Review licensing and redistribution conditions for Android platform-tools before bundling any executable. Prefer an external configured dependency unless redistribution is clearly permitted and operationally justified.
 - Measure command cancellation, timeout behavior, output encodings, daemon startup behavior, concurrent device operations, and recovery after device/server disconnect.
-- Verify installed Windows Service and native Linux systemd behavior, then observe the existing container harnesses on Docker Engine.
+- Verify installed Windows Service and native Linux systemd behavior.
 - Determine which device facts are stable and safe enough to expose without leaking identifiers or personal data.
 
 ### Transport decision
@@ -144,10 +145,10 @@ Use JSON, environment variables, and command-line configuration consistently wit
 
 - Run interactively and as a Windows Service on Windows.
 - Run interactively and under systemd on Linux.
-- Provide Docker with private-network, non-root, remote ADB-server, and persistent-key examples; retain exact Docker Engine execution as an outstanding acceptance gate.
+- Provide Docker with private-network, loopback-ingress, non-root, remote ADB-server, and persistent-key examples verified on Docker Engine.
 - Prefer a self-contained NativeAOT executable when dependencies and dynamic MCP behavior support it; otherwise document the runtime deployment exception.
 - Include PowerShell 5.1 build/test/publish scripts and repository-local VS Code debugging.
-- Add Windows and Linux CI, explicit short artifact retention, source-link/symbol/release packaging, and GitHub Release assets if public GitHub hosting is approved.
+- Retain Windows and Linux CI, explicit short artifact retention, source-link/symbol/release packaging, and GitHub Release assets for tagged releases.
 
 ## Security and privacy requirements
 
@@ -191,13 +192,13 @@ Use JSON, environment variables, and command-line configuration consistently wit
 - [ ] Run native Linux remote-server and systemd acceptance; Windows local/isolated-remote and Linux containerized-remote paths are accepted. - Owner: User / Agent; review 2026-09-30
 - [ ] Verify mDNS discovery and redaction with legacy TCP ADB and modern wireless debugging on both a local and remote ADB server. - Owner: User / Agent; review 2026-09-30
 - [x] Define and test container ADB networking, non-root operation, authentication, server replacement, and key persistence under rootless Podman. - Owner: Agent; completed 2026-08-31
-- [ ] Observe both container smoke harnesses on exact Docker Engine through GitHub Actions. - Owner: Agent; blocked until the public repository is created
+- [x] Observe both container smoke harnesses on exact Docker Engine through GitHub Actions. - Owner: Agent; completed 2026-08-31
 - [ ] Accept APK installation/removal on a disposable target and decide whether break-glass physical acceptance is necessary. - Owner: User / Agent; review 2026-09-30
 - [x] Add reproducible `0.1.0` Windows/Linux archives, checksums, dependency audits, release documentation, and packaged Windows smoke coverage. - Owner: Agent; completed 2026-08-31
 - [x] Complete the pre-publication reachable-history, metadata, path, credential, device-data, and binary privacy review. - Owner: Agent; completed 2026-08-31
-- [ ] Authenticate GitHub, create public `Wixely/ADBMCPSharp`, push reviewed `main`, and observe CI. - Owner: User / Agent; blocked on user sign-in
+- [x] Authenticate GitHub, create public `Wixely/ADBMCPSharp`, push reviewed `main`, and observe CI. - Owner: User / Agent; completed 2026-08-31
 - [ ] Add MCPHub integration as a separately verified milestone after the first public release. - Owner: Agent
 
 ## Recommended next action
 
-Sign in to GitHub in the already opened browser session, then create public `Wixely/ADBMCPSharp`, push the reviewed `main` history, and observe the Windows/Linux/package/Docker CI jobs. Owner: User for sign-in; Agent for creation, push, and CI follow-through.
+Install and exercise the packaged service as a native Windows Service and under systemd on a representative Linux host, then record startup, restart, shutdown, authentication, and recovery results. Owner: User / Agent; review 2026-09-30.
