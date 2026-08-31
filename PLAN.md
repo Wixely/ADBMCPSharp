@@ -48,6 +48,7 @@ Implemented:
 - OCI container deployment with non-root service and ADB-server containers, private networking, API-key authentication, persistent ADB trust keys, health checks, and Docker-compatible smoke harnesses.
 - Self-contained single-file Windows/Linux publishing, reproducible versioned archives, SHA-256 manifests, release documentation, repository-local VS Code debugging, CI, MIT licensing, and third-party notices.
 - Guarded native-host acceptance harnesses for an ephemeral authenticated Windows Service and an isolated systemd-enabled WSL2 installation.
+- A bounded single-application acceptance harness for closed launch modes and optional independently gated stop verification, plus CI parsing of every repository PowerShell script on Windows PowerShell 5.1.
 - 98 unit/contract tests covering parsing, policy gates, configuration safety, structured status, postcondition verification, transport contracts, and forbidden tool inputs.
 
 Accepted on the primary physical target:
@@ -60,6 +61,7 @@ Accepted on the primary physical target:
 - Exact Docker Engine execution of both container smoke paths in public GitHub Actions.
 - Public Windows/Linux build, test, package, and Docker CI on the reviewed `main` history.
 - Packaged Linux systemd operation on Ubuntu 24.04 WSL2, including hardening, authenticated MCP health/catalogue, rejection without credentials, restart, automatic failure recovery, stop, and clean removal.
+- Single-application acceptance on the primary target through the reusable `WakeAndForeground` path, including online/authorized preflight and observed installed, running, and foreground postconditions.
 
 Not yet verified or claimed:
 
