@@ -1,7 +1,7 @@
 {
   "Server": {
     "Host": "localhost",
-    "Port": 21990,
+    "Port": 5719,
     "Path": "/mcp",
     "WindowsServiceName": "ADBMCPSharp",
     "RateLimitPermitLimit": 120,

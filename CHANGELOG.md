@@ -4,6 +4,11 @@ All notable changes will be recorded here. The project follows Semantic Versioni
 
 ## Unreleased
 
+## 0.1.2 - 2026-09-01
+
+- Changed the default standalone and container HTTP port from `21990`/`8080` to `5719`, continuing the Wixely MCPSharp service-port sequence.
+- Updated smoke and acceptance harnesses plus deployment documentation for the new default endpoint.
+
 ## 0.1.1 - 2026-08-31
 
 - Removed the unnecessary IIS in-process hosting module from Windows release archives.

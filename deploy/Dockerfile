@@ -25,11 +25,11 @@ RUN mkdir -p /app/logs /var/lib/adbmcp/adb \
     && chown -R app:app /app /var/lib/adbmcp
 
 ENV Server__Host=0.0.0.0 \
-    Server__Port=8080 \
+    Server__Port=5719 \
     Adb__ExecutablePath=adb \
     ADB_VENDOR_KEYS=/var/lib/adbmcp/adb/adbkey
 
 VOLUME ["/app/logs", "/var/lib/adbmcp/adb"]
-EXPOSE 8080
+EXPOSE 5719
 USER app
 ENTRYPOINT ["dotnet", "ADBMCPSharp.dll"]

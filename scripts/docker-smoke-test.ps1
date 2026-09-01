@@ -23,7 +23,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Docker image build failed with exit code $LASTEXITCODE." }
     }
 
-    $publishedPort = '127.0.0.1:' + $Port + ':8080'
+    $publishedPort = '127.0.0.1:' + $Port + ':5719'
     & docker run --detach --rm --name $containerName `
         --publish $publishedPort `
         --env-file $environmentFile `

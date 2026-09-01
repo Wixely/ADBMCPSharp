@@ -84,7 +84,7 @@ try {
     [IO.File]::WriteAllLines($environmentFile, $settings)
     & docker run --detach --rm --name $serviceContainerName `
         --network $ingressNetworkName `
-        --publish ('127.0.0.1:' + $Port + ':8080') `
+        --publish ('127.0.0.1:' + $Port + ':5719') `
         --env-file $environmentFile `
         $ImageName | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'ADBMCPSharp topology container start failed.' }

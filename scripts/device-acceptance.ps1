@@ -4,7 +4,7 @@ param(
     [string]$DeviceAlias,
     [string]$Executable,
     [string]$LocalConfig,
-    [string]$BaseUri = 'http://localhost:21990',
+    [string]$BaseUri = 'http://localhost:5719',
     [string]$ApiKey,
     [switch]$SkipProcessStart,
     [string]$AdbServerAlias,

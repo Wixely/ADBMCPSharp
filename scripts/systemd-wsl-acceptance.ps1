@@ -4,7 +4,7 @@ param(
     [ValidatePattern('^[A-Za-z0-9._-]+$')]
     [string]$Distribution,
     [string]$Archive,
-    [string]$BaseUri = 'http://localhost:21990'
+    [string]$BaseUri = 'http://localhost:5719'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -75,8 +75,8 @@ try {
     if (Test-WslPath $unitPath) { throw "$unitPath already exists; refusing to overwrite it." }
     & $wsl.Source -d $Distribution -u root --exec /usr/bin/getent passwd $accountName *> $null
     if ($LASTEXITCODE -eq 0) { throw "The $accountName account already exists; refusing to reuse it." }
-    if ($null -ne (Get-NetTCPConnection -State Listen -LocalPort 21990 -ErrorAction SilentlyContinue)) {
-        throw 'Port 21990 is already in use on the Windows host.'
+    if ($null -ne (Get-NetTCPConnection -State Listen -LocalPort 5719 -ErrorAction SilentlyContinue)) {
+        throw 'Port 5719 is already in use on the Windows host.'
     }
 
     $linuxArchive = [string](@(Invoke-WslCommand @(

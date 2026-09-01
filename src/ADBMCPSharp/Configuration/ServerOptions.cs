@@ -9,7 +9,7 @@ public sealed class ServerOptions
     public string Host { get; set; } = "localhost";
 
     [Range(1, 65535)]
-    public int Port { get; set; } = 21990;
+    public int Port { get; set; } = 5719;
 
     [RegularExpression("^/.*")]
     public string Path { get; set; } = "/mcp";

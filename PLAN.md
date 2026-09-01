@@ -42,6 +42,7 @@ Implemented:
 - Curated read-only battery, memory, storage, CPU-load, runtime, display, and security diagnostics with fixed commands, structured parsers, per-device gating, and a global option allowlist.
 - Allowlisted media-session inspection with optional metadata redaction, closed media controls, and separately gated volume controls.
 - Checksum-pinned, size/time-bounded APK installation from configured local or HTTPS artifacts, plus explicitly allowlisted application removal; both are disabled by default and require per-call confirmation.
+- Default HTTP port `5719`, continuing the public Wixely MCPSharp service-port sequence after `5718`.
 - Break-glass arbitrary device-scoped ADB arguments with global, device, and per-call gates; fixed selector scoping; validation bounds; redacted auditing; and disabled-by-default configuration.
 - Per-device serialization, redacted audit events, and observable postcondition checks.
 - Guarded configured-device connect, reconnect, and disconnect operations with independent global/device gates, per-call confirmation, retries, redacted audit data, and final-state verification.
