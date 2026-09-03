@@ -5,6 +5,23 @@ namespace ADBMCPSharp.Tests;
 
 public sealed class AdbProcessTransportContractTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void MissingExecutablePathUsesSystemPath(string? configuredPath)
+    {
+        Assert.Equal("adb", AdbProcessTransport.ResolveExecutablePath(configuredPath));
+    }
+
+    [Fact]
+    public void ConfiguredExecutablePathIsPreserved()
+    {
+        const string configuredPath = @"C:\Android\platform-tools\adb.exe";
+
+        Assert.Equal(configuredPath, AdbProcessTransport.ResolveExecutablePath(configuredPath));
+    }
+
     [Fact]
     public void ForegroundInspectionUsesWindowSummaryContainingFocusFields()
     {

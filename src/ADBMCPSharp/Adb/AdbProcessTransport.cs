@@ -11,6 +11,7 @@ namespace ADBMCPSharp.Adb;
 public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<AdbProcessTransport> logger) : IAdbTransport
 {
     private const int MaxCapturedCharacters = 65_536;
+    private const string DefaultExecutableName = "adb";
     private readonly AdbOptions _options = options.Value;
 
     public Task<AdbExecutionResult> ExecuteServerAsync(
@@ -38,7 +39,7 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
     {
         var start = new ProcessStartInfo
         {
-            FileName = _options.ExecutablePath,
+            FileName = ResolveExecutablePath(_options.ExecutablePath),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -77,6 +78,9 @@ public sealed class AdbProcessTransport(IOptions<AdbOptions> options, ILogger<Ad
             return new(false, string.Empty, AdbFailureKind.Unavailable, "The configured ADB executable is unavailable.");
         }
     }
+
+    internal static string ResolveExecutablePath(string? configuredPath) =>
+        string.IsNullOrWhiteSpace(configuredPath) ? DefaultExecutableName : configuredPath;
 
     internal static IReadOnlyList<string> BuildServerArguments(AdbServerOptions server, AdbServerRequest request)
     {

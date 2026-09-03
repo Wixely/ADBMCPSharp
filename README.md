@@ -69,7 +69,7 @@ Launch verification polling is bounded by `Adb:AppLaunchVerificationAttempts` an
 - An operator-installed `adb` executable from a trusted Android SDK Platform-Tools distribution
 - An already-authorized ADB connection; wireless pairing remains an operator workflow
 
-ADBMCPSharp does not explicitly start or manage a daemon, pair devices, manage ADB keys, or redistribute platform-tools. It can issue guarded connect/disconnect operations for preconfigured device selectors. The configured executable may cause the normal `adb` client to start its local server when needed, connect to a local ADB server, or use `adb -H host -P port` for a trusted remote ADB server.
+ADBMCPSharp does not explicitly start or manage a daemon, pair devices, manage ADB keys, or redistribute platform-tools. It can issue guarded connect/disconnect operations for preconfigured device selectors. When `Adb:ExecutablePath` is omitted, `null`, or blank, the service runs `adb` from the system `PATH`. Set it to an executable path to use a specific installation. The selected executable may cause the normal ADB client to start its local server when needed, connect to a local ADB server, or use `adb -H host -P port` for a trusted remote ADB server.
 
 ## Configure
 
@@ -78,7 +78,6 @@ Keep checked-in [`ADBMCPSharp.json`](src/ADBMCPSharp/ADBMCPSharp.json) unchanged
 ```json
 {
   "Adb": {
-    "ExecutablePath": "adb",
     "MaxDiscoveryResults": 25,
     "DiscoveryHandleLifetimeSeconds": 60,
     "MaxInstalledAppResults": 200,

@@ -4,6 +4,11 @@ All notable changes will be recorded here. The project follows Semantic Versioni
 
 ## Unreleased
 
+## 0.2.0 - 2026-09-03
+
+- Made `Adb:ExecutablePath` optional; omitted, null, or blank values now resolve `adb` through the system `PATH`.
+- Updated default configuration, container deployment, acceptance harnesses, and documentation for optional executable-path configuration.
+
 ## 0.1.2 - 2026-09-01
 
 - Changed the default standalone and container HTTP port from `21990`/`8080` to `5719`, continuing the Wixely MCPSharp service-port sequence.

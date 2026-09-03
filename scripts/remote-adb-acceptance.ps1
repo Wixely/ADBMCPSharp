@@ -20,7 +20,12 @@ $deviceProperty = $configuration.Adb.Devices.PSObject.Properties |
     Select-Object -First 1
 if ($null -eq $deviceProperty) { throw "Unknown local device alias '$DeviceAlias'." }
 
-$adbExecutable = (Resolve-Path ([string]$configuration.Adb.ExecutablePath)).Path
+$configuredAdbExecutable = [string]$configuration.Adb.ExecutablePath
+$adbExecutable = if ([string]::IsNullOrWhiteSpace($configuredAdbExecutable)) {
+    (Get-Command adb -CommandType Application -ErrorAction Stop).Source
+} else {
+    (Resolve-Path $configuredAdbExecutable).Path
+}
 $deviceSelector = [string]$deviceProperty.Value.Selector
 $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $AdbServerPort)
 try { $listener.Start() }

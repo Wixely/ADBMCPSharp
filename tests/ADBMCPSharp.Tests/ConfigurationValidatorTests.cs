@@ -4,6 +4,17 @@ namespace ADBMCPSharp.Tests;
 
 public sealed class ConfigurationValidatorTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ExecutablePathIsOptional(string? executablePath)
+    {
+        var options = ValidOptions();
+        options.ExecutablePath = executablePath;
+
+        Assert.True(new AdbOptionsValidator().Validate(null, options).Succeeded);
+    }
+
     [Fact]
     public void RemoteServerRequiresHost()
     {

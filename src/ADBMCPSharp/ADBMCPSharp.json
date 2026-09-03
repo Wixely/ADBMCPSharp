@@ -8,7 +8,6 @@
     "RateLimitWindowSeconds": 60
   },
   "Adb": {
-    "ExecutablePath": "adb",
     "CommandTimeoutSeconds": 10,
     "VerificationDelayMilliseconds": 350,
     "AppLaunchVerificationAttempts": 6,

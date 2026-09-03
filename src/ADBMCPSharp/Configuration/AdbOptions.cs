@@ -6,7 +6,7 @@ public sealed class AdbOptions
 {
     public const string SectionName = "Adb";
 
-    [Required] public string ExecutablePath { get; set; } = "adb";
+    public string? ExecutablePath { get; set; }
     [Range(1, 120)] public int CommandTimeoutSeconds { get; set; } = 10;
     [Range(0, 5000)] public int VerificationDelayMilliseconds { get; set; } = 350;
     [Range(1, 10)] public int AppLaunchVerificationAttempts { get; set; } = 6;

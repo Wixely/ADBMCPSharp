@@ -141,6 +141,7 @@ Tools must not accept raw package/activity names, intent strings, shell fragment
 - Protected locations for ADB keys and wireless-debugging credentials when required.
 - Global read-only setting and category gates.
 - Allowlists for applications and navigation/media actions.
+- Optional ADB executable path; an omitted, null, or blank value resolves `adb` through the system `PATH`.
 - Connection, operation, and postcondition-verification timeouts.
 - Audit enablement, retention, and redaction policy.
 

@@ -26,7 +26,6 @@ RUN mkdir -p /app/logs /var/lib/adbmcp/adb \
 
 ENV Server__Host=0.0.0.0 \
     Server__Port=5719 \
-    Adb__ExecutablePath=adb \
     ADB_VENDOR_KEYS=/var/lib/adbmcp/adb/adbkey
 
 VOLUME ["/app/logs", "/var/lib/adbmcp/adb"]

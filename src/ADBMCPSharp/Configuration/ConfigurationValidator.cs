@@ -7,7 +7,6 @@ public sealed class AdbOptionsValidator : IValidateOptions<AdbOptions>
     public ValidateOptionsResult Validate(string? name, AdbOptions options)
     {
         var failures = new List<string>();
-        if (string.IsNullOrWhiteSpace(options.ExecutablePath)) failures.Add("Adb:ExecutablePath is required.");
         if (options.Servers.Count > 25) failures.Add("At most 25 configured ADB servers are supported.");
         if (options.Devices.Count > 100) failures.Add("At most 100 configured devices are supported.");
         if (options.ApkArtifacts.Count > 100) failures.Add("At most 100 configured APK artifacts are supported.");

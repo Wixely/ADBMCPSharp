@@ -58,7 +58,9 @@ function Get-SseJson($Response) {
 
 $serviceProcess = $null
 try {
-    Set-AcceptanceEnvironment 'ADBMCP_Adb__ExecutablePath' ([string]$configuration.Adb.ExecutablePath)
+    if (-not [string]::IsNullOrWhiteSpace([string]$configuration.Adb.ExecutablePath)) {
+        Set-AcceptanceEnvironment 'ADBMCP_Adb__ExecutablePath' ([string]$configuration.Adb.ExecutablePath)
+    }
     Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__Server') $effectiveServerAlias
     Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__Selector') ([string]$device.Selector)
     Set-AcceptanceEnvironment ('ADBMCP_Adb__Devices__' + $DeviceAlias + '__DisplayName') ([string]$device.DisplayName)
